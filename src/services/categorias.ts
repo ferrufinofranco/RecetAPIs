@@ -1,4 +1,4 @@
-import axios from 'axios'
+import { api } from './api'
 
 export interface Categoria {
   id: number | string
@@ -6,24 +6,11 @@ export interface Categoria {
 }
 
 export async function obtenerCategorias(): Promise<Categoria[]> {
-  const url = import.meta.env.VITE_SUPABASE_URL
-  const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
-
-  if (!url || !publishableKey) {
-    throw new Error(
-      'Faltan VITE_SUPABASE_URL o VITE_SUPABASE_PUBLISHABLE_KEY en el archivo .env.',
-    )
-  }
-
-  const { data } = await axios.get<Categoria[]>(`${url.replace(/\/+$/, '')}/rest/v1/categorias`, {
-    headers: {
-      apikey: publishableKey,
-    },
+  const { data } = await api.get<Categoria[]>('categorias', {
     params: {
       select: 'id,nombre',
       order: 'nombre.asc',
     },
-    timeout: 10000,
   })
 
   return data
