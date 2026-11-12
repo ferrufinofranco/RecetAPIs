@@ -52,7 +52,7 @@ function alternar() {
 <style scoped>
 .solicitudes-contextuales { min-width: 0; }
 .solicitudes-acciones { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem .75rem; margin-top: .35rem; }
-.solicitudes-acciones :deep(.boton-solicitud), .ver-solicitudes { margin: 0; min-height: 44px; max-width: 100%; white-space: normal; padding: .35rem 0; background: transparent; color: #365f40; border: 0; border-radius: 0; text-align: left; }
+.solicitudes-acciones :deep(.boton-solicitud), .ver-solicitudes { margin: 0; min-height: 44px; max-width: 100%; white-space: normal; padding: .35rem 0; background: transparent; color: var(--enlace); border: 0; border-radius: 0; text-align: left; }
 .ver-solicitudes:hover { text-decoration: underline; text-underline-offset: 4px; }
-.ver-solicitudes:focus-visible { outline: 3px solid #b56825; outline-offset: 3px; }
+.ver-solicitudes:focus-visible { outline: 3px solid var(--acento); outline-offset: 3px; }
 </style>

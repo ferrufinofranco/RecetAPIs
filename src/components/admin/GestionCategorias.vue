@@ -159,7 +159,7 @@ useListadoAdministracion(cargarCategorias, () => cargando.value || guardando.val
 
 <style scoped>
 .listado-panel { min-width: 0; }
-.listado-scroll { height: 400px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid #e1e6dc; border-radius: 14px; background: white; }
+.listado-scroll { height: 400px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--borde); border-radius: 14px; background: var(--superficie); }
 .listado-vacio { padding: 1rem; }
 .categorias-lista { border: 0; border-radius: 0; }
 .categorias-fila-acciones, .categorias-lista .dato { flex-shrink: 0; }

@@ -29,9 +29,9 @@ function navegar(event, indice) {
 </template>
 
 <style scoped>
-.admin-pestanas { display: flex; flex-wrap: wrap; gap: .5rem; padding: .4rem; margin-bottom: 1rem; border: 1px solid #d9e0d5; border-radius: 14px; background: #eef1e5; }
-button { flex: 1 1 auto; min-width: 0; padding: .6rem .9rem; background: transparent; color: #36513b; border-color: transparent; font-weight: 600; }
-button[aria-selected="true"] { background: #365f40; color: white; box-shadow: 0 2px 5px #27372b18; }
-button:focus-visible { outline: 3px solid #b56825; outline-offset: 2px; }
+.admin-pestanas { display: flex; flex-wrap: wrap; gap: .5rem; padding: .4rem; margin-bottom: 1rem; border: 1px solid var(--borde-pestanas); border-radius: 14px; background: var(--superficie-suave); }
+button { flex: 1 1 auto; min-width: 0; padding: .6rem .9rem; background: transparent; color: var(--pestana-texto); border-color: transparent; font-weight: 600; }
+button[aria-selected="true"] { background: var(--primario); color: var(--sobre-primario); box-shadow: 0 2px 5px var(--sombra-pestana); }
+button:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
 @media (max-width: 480px) { button { flex-basis: 40%; padding-inline: .5rem; } }
 </style>

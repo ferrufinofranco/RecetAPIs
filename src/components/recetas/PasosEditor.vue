@@ -71,7 +71,7 @@ function mover(indice, direccion) {
 .paso-nuevo > div, .pasos-editor li > div { min-width: 0; }
 .paso-nuevo label, .pasos-editor label { display: block; font-weight: 600; }
 .paso-nuevo textarea, .pasos-editor textarea { margin-bottom: 0; line-height: 1.4; }
-.pasos-editor li { padding-bottom: .5rem; border-bottom: 1px solid #e1e6dc; }
+.pasos-editor li { padding-bottom: .5rem; border-bottom: 1px solid var(--borde); }
 .acciones-editor { gap: .35rem; }
 @media (max-width: 700px) {
   .pasos-editor li { grid-template-columns: minmax(0, 1fr); gap: .35rem; }

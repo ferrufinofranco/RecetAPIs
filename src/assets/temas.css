@@ -1,0 +1,85 @@
+/* Los valores claros conservan la paleta original. Solo cambian los colores. */
+:root {
+  color-scheme: light;
+  color: var(--texto);
+  background: var(--fondo);
+  --fondo: #faf9f5;
+  --superficie: #fff;
+  --superficie-calida: #fffdf8;
+  --superficie-suave: #eef1e5;
+  --superficie-carga: #f0f3ec;
+  --texto: #27372b;
+  --texto-control: #283522;
+  --texto-secundario: #576353;
+  --texto-tenue: #64705e;
+  --texto-ceja: #6a794e;
+  --enlace: #365f40;
+  --primario: #365f40;
+  --sobre-primario: #fff;
+  --acento: #b56825;
+  --borde: #e1e6dc;
+  --borde-control: #b9c5b7;
+  --borde-selector: #c5cdbd;
+  --borde-pestanas: #d9e0d5;
+  --borde-datos: #dde3d5;
+  --borde-ingredientes: #d9e0cc;
+  --etiqueta-fondo: #edf2e7;
+  --etiqueta-texto: #455e38;
+  --pestana-texto: #36513b;
+  --inactivo-fondo: #ececea;
+  --inactivo-texto: #555b53;
+  --error-fondo: #fff2e9;
+  --error-texto: #8b3525;
+  --error-borde: #c77c57;
+  --advertencia-fondo: #fff0ce;
+  --advertencia-texto: #785218;
+  --aviso-fondo: #f0efdf;
+  --sombra-tarjeta: #27372b12;
+  --sombra-desplegable: #28352226;
+  --sombra-pestana: #27372b18;
+  --fondo-modal: #27372b99;
+}
+
+:root[data-tema='oscuro'] {
+  color-scheme: dark;
+  --fondo: #151d18;
+  --superficie: #1e2922;
+  --superficie-calida: #1b251f;
+  --superficie-suave: #263329;
+  --superficie-carga: #263329;
+  --texto: #e5ebe2;
+  --texto-control: #e5ebe2;
+  --texto-secundario: #bac6b5;
+  --texto-tenue: #aebda6;
+  --texto-ceja: #b1c890;
+  --enlace: #a5d8af;
+  --primario: #9dce9d;
+  --sobre-primario: #132619;
+  --acento: #efa55d;
+  --borde: #435247;
+  --borde-control: #7c907b;
+  --borde-selector: #7c907b;
+  --borde-pestanas: #435247;
+  --borde-datos: #435247;
+  --borde-ingredientes: #435247;
+  --etiqueta-fondo: #2b3c2e;
+  --etiqueta-texto: #bdd9ad;
+  --pestana-texto: #bdd9ad;
+  --inactivo-fondo: #303732;
+  --inactivo-texto: #c3cbc0;
+  --error-fondo: #3b2621;
+  --error-texto: #ffb39e;
+  --error-borde: #c88b70;
+  --advertencia-fondo: #3a321f;
+  --advertencia-texto: #f2cf84;
+  --aviso-fondo: #323527;
+  --sombra-tarjeta: #00000040;
+  --sombra-desplegable: #00000066;
+  --sombra-pestana: #00000040;
+  --fondo-modal: #000000b3;
+}
+
+/* Controles nativos (incluidos textareas de moderación) y placeholders legibles. */
+:root[data-tema='oscuro'] textarea { background: var(--superficie); color: var(--texto); }
+:root[data-tema='oscuro'] ::placeholder { color: var(--texto-tenue); opacity: 1; }
+:root[data-tema='oscuro'] input { accent-color: var(--primario); }

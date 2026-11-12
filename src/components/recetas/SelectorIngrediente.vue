@@ -89,12 +89,12 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', clicFuera))
 
 <style scoped>
 .selector-ingrediente { position: relative; min-width: 0; }
-.selector-campo { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: .5rem; text-align: left; background: white; color: #283522; border: 1px solid #c5cdbd; font-weight: normal; }
+.selector-campo { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: .5rem; text-align: left; background: var(--superficie); color: var(--texto-control); border: 1px solid var(--borde-selector); font-weight: normal; }
 .selector-campo span:first-child { overflow-wrap: anywhere; min-width: 0; }
-.selector-desplegable { position: absolute; top: calc(100% + .25rem); left: 0; right: 0; z-index: 10; background: white; border: 1px solid #c5cdbd; border-radius: 12px; padding: .5rem; box-shadow: 0 8px 24px #28352226; }
+.selector-desplegable { position: absolute; top: calc(100% + .25rem); left: 0; right: 0; z-index: 10; background: var(--superficie); border: 1px solid var(--borde-selector); border-radius: 12px; padding: .5rem; box-shadow: 0 8px 24px var(--sombra-desplegable); }
 .selector-opciones { list-style: none; padding: 0; margin: .5rem 0 0; max-height: 240px; overflow-y: auto; overscroll-behavior: contain; }
 .selector-opciones li { padding: .6rem; cursor: pointer; overflow-wrap: anywhere; border-radius: 6px; }
-.selector-opciones li:hover, .selector-opciones .resaltada { background: #edf2e7; outline: 2px solid #455e38; outline-offset: -2px; }
+.selector-opciones li:hover, .selector-opciones .resaltada { background: var(--etiqueta-fondo); outline: 2px solid var(--etiqueta-texto); outline-offset: -2px; }
 .selector-opciones [aria-selected="true"] { font-weight: bold; }
 .selector-desplegable p { margin: .75rem .25rem; }
 </style>

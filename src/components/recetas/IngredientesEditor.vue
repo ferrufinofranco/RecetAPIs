@@ -116,10 +116,10 @@ function modificar(id, campo, valor) {
 .ingrediente-nuevo .campo { margin: 0; }
 .agregar-ingrediente { max-width: 8rem; line-height: 1.25; }
 .ingredientes-encabezado, .lista-editor.ingredientes-agregados li { display: grid; grid-template-columns: minmax(0, 1fr) 96px 84px 44px; align-items: center; gap: .5rem; }
-.ingredientes-encabezado { margin-top: .65rem; padding-bottom: .25rem; border-bottom: 1px solid #e1e6dc; font-size: .8rem; color: #576353; }
+.ingredientes-encabezado { margin-top: .65rem; padding-bottom: .25rem; border-bottom: 1px solid var(--borde); font-size: .8rem; color: var(--texto-secundario); }
 .encabezado-quitar { text-align: center; }
 .lista-editor.ingredientes-agregados { list-style: none; padding: 0; margin: 0; }
-.lista-editor.ingredientes-agregados li { min-height: 50px; padding: .25rem 0; border-bottom: 1px solid #e1e6dc; }
+.lista-editor.ingredientes-agregados li { min-height: 50px; padding: .25rem 0; border-bottom: 1px solid var(--borde); }
 .ingredientes-agregados strong { min-width: 0; overflow-wrap: anywhere; font-size: .9rem; font-weight: 600; }
 .ingredientes-agregados input, .ingredientes-agregados select { width: 100%; min-width: 0; min-height: 40px; padding: .3rem .45rem; }
 .ingredientes-agregados .quitar-ingrediente { display: inline-flex; align-items: center; justify-content: center; justify-self: center; width: 40px; min-height: 40px; padding: 0; font-size: 1.4rem; line-height: 1; }

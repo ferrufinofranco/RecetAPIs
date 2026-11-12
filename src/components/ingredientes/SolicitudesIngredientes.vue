@@ -124,15 +124,15 @@ function ingredienteResuelto(item) {
 <style scoped>
 .solicitudes { margin-block: 2rem; }
 .solicitudes-lista { list-style: none; padding: 0; }
-li { border: 1px solid #e1e6dc; border-radius: 14px; padding: 1rem; margin-block: 1rem; overflow-wrap: anywhere; }
+li { border: 1px solid var(--borde); border-radius: 14px; padding: 1rem; margin-block: 1rem; overflow-wrap: anywhere; }
 li h3 { margin-top: 0; }
 fieldset { border: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; min-width: 0; }
 fieldset select { max-width: 300px; }
 .sr-solicitud { font-weight: 600; margin-bottom: .5rem; }
-.solicitudes.solicitudes--compacta { margin: .5rem 0 0; padding: .5rem; border: 1px solid #e1e6dc; border-radius: 10px; min-width: 0; }
+.solicitudes.solicitudes--compacta { margin: .5rem 0 0; padding: .5rem; border: 1px solid var(--borde); border-radius: 10px; min-width: 0; }
 .solicitudes--compacta .solicitudes-lista { max-height: 20rem; overflow-y: auto; margin-bottom: 0; }
 .solicitudes--compacta li { padding: .65rem; margin-block: .5rem; }
 .solicitudes--compacta li h3 { font-size: 1rem; margin-bottom: .25rem; }
 .solicitudes--compacta button { max-width: 100%; white-space: normal; }
-.solicitudes--compacta :focus-visible { outline: 3px solid #b56825; outline-offset: 2px; }
+.solicitudes--compacta :focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
 </style>

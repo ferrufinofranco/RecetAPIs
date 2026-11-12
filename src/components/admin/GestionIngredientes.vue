@@ -162,15 +162,15 @@ useListadoAdministracion(cargarIngredientes, () => cargando.value || guardando.v
 .admin-ingredientes { margin-block: 3rem 2rem; }
 .ingredientes-panel { display: grid; grid-template-columns: 1.3fr 1fr; gap: 2rem; align-items: start; }
 .listado-panel { min-width: 0; }
-.listado-scroll { height: 400px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid #e1e6dc; border-radius: 14px; background: white; }
+.listado-scroll { height: 400px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--borde); border-radius: 14px; background: var(--superficie); }
 .listado-vacio { padding: 1rem; }
-.ingredientes-lista { list-style: none; padding: 0; margin: 0; background: white; }
-.ingredientes-lista li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border-bottom: 1px solid #e1e6dc; }
+.ingredientes-lista { list-style: none; padding: 0; margin: 0; background: var(--superficie); }
+.ingredientes-lista li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--borde); }
 .ingredientes-lista li:last-child { border-bottom: 0; }
 .ingrediente-datos { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; min-width: 0; overflow-wrap: anywhere; }
 .ingrediente-fila-acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; flex-shrink: 0; }
-.estado { background: #edf2e7; color: #455e38; border-radius: 20px; padding: .2rem .7rem; font-size: .8rem; }
-.estado.inactivo { background: #ececea; color: #555b53; }
+.estado { background: var(--etiqueta-fondo); color: var(--etiqueta-texto); border-radius: 20px; padding: .2rem .7rem; font-size: .8rem; }
+.estado.inactivo { background: var(--inactivo-fondo); color: var(--inactivo-texto); }
 @media (max-width: 700px) { .ingredientes-panel { grid-template-columns: 1fr; } }
 @media (max-width: 480px) {
   .ingredientes-lista li { flex-direction: column; align-items: stretch; }

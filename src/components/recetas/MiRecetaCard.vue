@@ -42,10 +42,10 @@ const fecha = computed(() => {
 .mi-receta-card { overflow-wrap: anywhere; }
 .acciones-receta { margin-top: 1rem; }
 .estado-receta { display: inline-block; border-radius: 20px; padding: .2rem .8rem; font-weight: 600; }
-.publicada { color: #365f40; background: #edf2e7; }
-.pendiente { color: #785218; background: #fff0ce; }
-.rechazada { color: #8b3525; background: #fff2e9; }
-.motivo-rechazo { border-top: 1px solid #e1e6dc; padding-top: 1rem; }
+.publicada { color: var(--enlace); background: var(--etiqueta-fondo); }
+.pendiente { color: var(--advertencia-texto); background: var(--advertencia-fondo); }
+.rechazada { color: var(--error-texto); background: var(--error-fondo); }
+.motivo-rechazo { border-top: 1px solid var(--borde); padding-top: 1rem; }
 .motivo-rechazo h3 { font-size: 1rem; margin-top: 0; }
 .motivo-rechazo p { white-space: pre-wrap; margin-bottom: 0; }
 </style>

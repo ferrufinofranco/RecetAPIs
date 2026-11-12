@@ -4,6 +4,7 @@ import { avisoCambiosSinGuardar, cambiosSinGuardarKey } from '@/composables/useC
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AvisosPwa from '@/components/AvisosPwa.vue'
+import BotonTema from '@/components/BotonTema.vue'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -83,6 +84,7 @@ async function salir() {
             <RouterLink :to="{ name: 'registro' }">Registro</RouterLink>
           </template>
         </template>
+        <BotonTema />
       </div>
     </nav>
   </header>

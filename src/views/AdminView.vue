@@ -60,7 +60,7 @@ watch(() => route.query.receta, (resultado) => {
 
 <style scoped>
 .administracion { min-width: 0; }
-.admin-panel { padding: clamp(.8rem, 2vw, 1.5rem); border: 1px solid #e1e6dc; border-radius: 16px; background: #fffdf8; min-width: 0; }
+.admin-panel { padding: clamp(.8rem, 2vw, 1.5rem); border: 1px solid var(--borde); border-radius: 16px; background: var(--superficie-calida); min-width: 0; }
 .admin-panel :deep(.moderacion), .admin-panel :deep(.gestion-recetas), .admin-panel :deep(.admin-ingredientes), .admin-panel :deep(.admin-categorias), .admin-panel :deep(.solicitudes) { margin-block: 0; }
 .admin-panel :deep(h2) { margin-bottom: .5rem; }
 .admin-panel :deep(button), .admin-panel :deep(input), .admin-panel :deep(select) { padding: .55rem .8rem; }
@@ -68,7 +68,7 @@ watch(() => route.query.receta, (resultado) => {
 .admin-panel :deep(li) { gap: .75rem; padding: .85rem; overflow-wrap: anywhere; }
 .admin-panel :deep(.categorias-lista li), .admin-panel :deep(.ingredientes-lista li) { flex-wrap: wrap; }
 .admin-panel :deep(select) { max-width: 100%; }
-.admin-panel :deep(.estado-vacio), .admin-panel :deep(p[role="status"]:not(.mensaje-info)) { padding: 1rem; border-radius: 10px; background: #f0f3ec; }
+.admin-panel :deep(.estado-vacio), .admin-panel :deep(p[role="status"]:not(.mensaje-info)) { padding: 1rem; border-radius: 10px; background: var(--superficie-carga); }
 .admin-volver { display: inline-block; margin-top: 1.5rem; }
 @media (max-width: 700px) {
   .admin-panel :deep(.categorias-panel), .admin-panel :deep(.ingredientes-panel) { grid-template-columns: minmax(0, 1fr); }

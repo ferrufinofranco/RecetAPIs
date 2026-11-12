@@ -77,11 +77,11 @@ async function enviar() {
 </template>
 
 <style scoped>
-.boton-solicitud { margin-top: .65rem; text-align: left; background: transparent; color: #365f40; border: 0; border-radius: 0; }
+.boton-solicitud { margin-top: .65rem; text-align: left; background: transparent; color: var(--enlace); border: 0; border-radius: 0; }
 .boton-solicitud:hover { text-decoration: underline; text-underline-offset: 4px; }
-.boton-solicitud:focus-visible { outline: 3px solid #b56825; outline-offset: 3px; }
-.solicitud-dialogo { width: min(480px, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow: auto; padding: 1.25rem; border: 1px solid #b9c5b7; border-radius: 14px; color: #27372b; background: #faf9f5; }
-.solicitud-dialogo::backdrop { background: #27372b99; }
+.boton-solicitud:focus-visible { outline: 3px solid var(--acento); outline-offset: 3px; }
+.solicitud-dialogo { width: min(480px, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow: auto; padding: 1.25rem; border: 1px solid var(--borde-control); border-radius: 14px; color: var(--texto); background: var(--fondo); }
+.solicitud-dialogo::backdrop { background: var(--fondo-modal); }
 .solicitud-dialogo h2 { margin-bottom: .5rem; }
 .solicitud-dialogo input, .solicitud-dialogo button { min-height: 44px; }
 label { display: block; font-weight: 600; margin-bottom: .35rem; }

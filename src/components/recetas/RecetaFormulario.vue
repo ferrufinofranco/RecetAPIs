@@ -303,20 +303,20 @@ onMounted(cargarOpciones)
 <style>
 .crear-receta { max-width: 850px; margin-inline: auto; }
 .crear-receta fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-.crear-receta section { margin-block: .85rem; padding-top: .85rem; border-top: 1px solid #e1e6dc; }
+.crear-receta section { margin-block: .85rem; padding-top: .85rem; border-top: 1px solid var(--borde); }
 .crear-receta h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); margin-bottom: .75rem; }
 .crear-receta h2 { margin-bottom: .5rem; }
 .crear-receta section p { margin-bottom: .5rem; }
 .crear-receta input, .crear-receta select, .crear-receta button { padding: .45rem .65rem; min-height: 44px; min-width: 0; }
-.crear-receta textarea { display: block; width: 100%; resize: vertical; font: inherit; color: inherit; background: white; border: 1px solid #b9c5b7; border-radius: 10px; padding: .5rem .65rem; margin: .25rem 0 .65rem; }
+.crear-receta textarea { display: block; width: 100%; resize: vertical; font: inherit; color: inherit; background: var(--superficie); border: 1px solid var(--borde-control); border-radius: 10px; padding: .5rem .65rem; margin: .25rem 0 .65rem; }
 .crear-receta .campo { min-width: 0; margin-bottom: .65rem; }
 .crear-receta .campo label { margin-bottom: .25rem; }
 .crear-receta .informacion-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: .75rem; align-items: start; }
 .crear-receta .informacion-grid textarea { margin-bottom: 0; }
 .crear-receta .datos-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
-.crear-receta .guardar-receta { padding-top: .75rem; border-top: 1px solid #e1e6dc; }
+.crear-receta .guardar-receta { padding-top: .75rem; border-top: 1px solid var(--borde); }
 .crear-receta .lista-editor { list-style: none; padding: 0; margin-block: .5rem 0; }
-.crear-receta .lista-editor li { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .5rem 0; border-bottom: 1px solid #e1e6dc; }
+.crear-receta .lista-editor li { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .5rem 0; border-bottom: 1px solid var(--borde); }
 .crear-receta .lista-editor span { overflow-wrap: anywhere; min-width: 0; }
 .crear-receta .acciones-editor { display: flex; gap: .5rem; flex-wrap: wrap; }
 .crear-receta .pasos-editor { list-style: none; padding: 0; margin-block: .5rem 0; }

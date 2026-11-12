@@ -170,14 +170,14 @@ onBeforeUnmount(() => {
 .moderacion { margin-bottom: 3rem; }
 .moderacion > button { margin-bottom: 1rem; }
 .lista-propuestas { list-style: none; margin: 0; padding: 0; }
-.lista-propuestas li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border-bottom: 1px solid #e1e6dc; }
+.lista-propuestas li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--borde); }
 .lista-propuestas li > div { min-width: 0; overflow-wrap: anywhere; }
 .lista-propuestas p { margin-bottom: 0; }
-.revision { padding: 1.5rem; margin-top: 2rem; border: 1px solid #e1e6dc; border-radius: 16px; background: #fffdf8; }
-.revision:focus { outline: 3px solid #b56825; outline-offset: 4px; }
+.revision { padding: 1.5rem; margin-top: 2rem; border: 1px solid var(--borde); border-radius: 16px; background: var(--superficie-calida); }
+.revision:focus { outline: 3px solid var(--acento); outline-offset: 4px; }
 .decision { border: 0; margin: 2rem 0 1rem; padding: 0; min-width: 0; }
 .decision legend { font-weight: 700; margin-bottom: 1rem; }
-.decision textarea { display: block; width: 100%; resize: vertical; font: inherit; padding: .75rem; border: 1px solid #b9c5b7; border-radius: 10px; margin-block: .5rem 1rem; }
+.decision textarea { display: block; width: 100%; resize: vertical; font: inherit; padding: .75rem; border: 1px solid var(--borde-control); border-radius: 10px; margin-block: .5rem 1rem; }
 .acciones-moderacion { display: flex; flex-wrap: wrap; gap: .75rem; }
 @media (max-width: 600px) { .lista-propuestas li { flex-wrap: wrap; } .revision { padding: 1rem; } }
 </style>

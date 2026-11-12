@@ -103,7 +103,7 @@ onMounted(() => {
 .catalogo { width: min(1280px, calc(100vw - 3rem)); margin-inline: calc((100% - min(1280px, 100vw - 3rem)) / 2); }
 .catalogo-distribucion { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 1.5rem; align-items: start; }
 .catalogo-lateral, .catalogo-resultados { min-width: 0; }
-.catalogo-panel-filtros { padding: 1rem; border: 1px solid #e1e6dc; border-radius: 14px; background: #fffdf8; overflow-wrap: anywhere; }
+.catalogo-panel-filtros { padding: 1rem; border: 1px solid var(--borde); border-radius: 14px; background: var(--superficie-calida); overflow-wrap: anywhere; }
 .catalogo-panel-filtros h2 { font-size: 1.1rem; margin-bottom: 1rem; }
 .catalogo-panel-filtros > p, .catalogo-panel-filtros > .mensaje-error { margin: 1rem 0 0; font-size: .9rem; }
 .catalogo-panel-filtros button { max-width: 100%; padding: .6rem .7rem; }

@@ -126,22 +126,22 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', clicFuera))
 
 <style scoped>
 .selector-categorias { min-width: 0; }
-.selector-campo { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: .5rem; text-align: left; background: white; color: #283522; border: 1px solid #c5cdbd; font-weight: normal; }
+.selector-campo { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: .5rem; text-align: left; background: var(--superficie); color: var(--texto-control); border: 1px solid var(--borde-selector); font-weight: normal; }
 .selector-campo span:first-child { overflow-wrap: anywhere; min-width: 0; }
-.selector-desplegable { margin-top: .25rem; background: white; border: 1px solid #c5cdbd; border-radius: 12px; padding: .5rem; box-shadow: 0 8px 24px #28352226; }
+.selector-desplegable { margin-top: .25rem; background: var(--superficie); border: 1px solid var(--borde-selector); border-radius: 12px; padding: .5rem; box-shadow: 0 8px 24px var(--sombra-desplegable); }
 .selector-desplegable input { width: 100%; min-width: 0; }
 .selector-opciones { list-style: none; padding: 0; margin: .5rem 0 0; max-height: min(240px, 40dvh); overflow-y: auto; overscroll-behavior: contain; }
 .selector-opciones li { padding: .6rem; cursor: pointer; overflow-wrap: anywhere; border-radius: 6px; }
-.selector-opciones li:hover, .selector-opciones .resaltada { background: #edf2e7; outline: 2px solid #455e38; outline-offset: -2px; }
+.selector-opciones li:hover, .selector-opciones .resaltada { background: var(--etiqueta-fondo); outline: 2px solid var(--etiqueta-texto); outline-offset: -2px; }
 .selector-desplegable p { margin: .75rem .25rem; }
-.categorias-recuadro { margin-top: .65rem; padding: .65rem; border: 1px solid #e1e6dc; border-radius: 12px; background: white; }
+.categorias-recuadro { margin-top: .65rem; padding: .65rem; border: 1px solid var(--borde); border-radius: 12px; background: var(--superficie); }
 .categorias-recuadro h3 { margin: 0 0 .4rem; font-size: .9rem; font-weight: 600; }
-.categorias-recuadro p { margin: 0; color: #576353; font-size: .9rem; }
+.categorias-recuadro p { margin: 0; color: var(--texto-secundario); font-size: .9rem; }
 .categorias-etiquetas { display: flex; flex-wrap: wrap; gap: .4rem; list-style: none; padding: 0; margin: 0; }
-.categorias-etiquetas li { display: inline-flex; align-items: center; max-width: 100%; min-width: 0; gap: .25rem; padding-left: .6rem; border: 1px solid #b9c5b7; border-radius: 20px; background: #edf2e7; color: #365f40; font-size: .9rem; }
+.categorias-etiquetas li { display: inline-flex; align-items: center; max-width: 100%; min-width: 0; gap: .25rem; padding-left: .6rem; border: 1px solid var(--borde-control); border-radius: 20px; background: var(--etiqueta-fondo); color: var(--enlace); font-size: .9rem; }
 .categorias-etiquetas li > span { min-width: 0; overflow-wrap: anywhere; }
 .categorias-etiquetas button { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; min-height: 32px; width: 32px; padding: 0; background: transparent; color: inherit; border: 0; border-radius: 50%; font-size: 1.3rem; }
-.selector-categorias :focus-visible { outline: 3px solid #b56825; outline-offset: 3px; }
+.selector-categorias :focus-visible { outline: 3px solid var(--acento); outline-offset: 3px; }
 .etiqueta-accesible { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (max-width: 600px) {
   .categorias-etiquetas button { min-height: 44px; width: 44px; }

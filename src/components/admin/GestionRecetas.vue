@@ -78,7 +78,7 @@ onBeforeUnmount(() => controller?.abort())
 .gestion-recetas { margin-block: 2rem; }
 .gestion-recetas > button { margin-bottom: 1rem; }
 .gestion-lista { list-style: none; padding: 0; }
-.gestion-lista li { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding: 1rem; border-bottom: 1px solid #e1e6dc; }
+.gestion-lista li { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--borde); }
 .gestion-lista li > div { min-width: 0; overflow-wrap: anywhere; }
 .gestion-lista h3 { margin-top: 0; }
 .gestion-lista p { margin-bottom: .5rem; }

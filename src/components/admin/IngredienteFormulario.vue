@@ -28,7 +28,7 @@ defineEmits(['update:nombre', 'guardar', 'cancelar'])
 </template>
 
 <style scoped>
-.ingrediente-formulario { padding: 1.5rem; border-radius: 14px; background: #eef1e5; }
+.ingrediente-formulario { padding: 1.5rem; border-radius: 14px; background: var(--superficie-suave); }
 h3 { margin-top: 0; }
 label { display: block; font-weight: 600; margin-bottom: .4rem; }
 .ingrediente-acciones { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
