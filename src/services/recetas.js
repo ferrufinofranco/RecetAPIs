@@ -1,6 +1,7 @@
 import { api } from './api'
 import { adaptarReceta } from '@/utils/recetas'
 import { prepararDatosReceta } from '@/utils/crearReceta'
+import { resumirRecetaPropia } from '@/utils/misRecetas'
 
 const select = [
   'id,receta_id,numero,titulo,descripcion,tiempo_minutos,porciones,dificultad,imagen_path',
@@ -53,4 +54,29 @@ export async function crearReceta(formulario) {
     p_datos: prepararDatosReceta(formulario),
   })
   return data
+}
+
+export async function obtenerMisRecetas(autorId, signal) {
+  if (!autorId) throw new Error('Iniciá sesión para consultar tus recetas.')
+  const recetas = []
+  let offset = 0
+  while (true) {
+    const { data } = await api.get('recetas', {
+      params: {
+        select: 'id,creada_en,receta_versiones(id,numero,estado,titulo,motivo_rechazo)',
+        autor_id: `eq.${autorId}`,
+        eliminada_en: 'is.null',
+        order: 'creada_en.desc,id.desc',
+        'receta_versiones.estado': 'in.(publicada,pendiente,rechazada)',
+        'receta_versiones.order': 'numero.desc',
+        offset,
+        limit: 1000,
+      },
+      signal,
+    })
+    if (!data.length) break
+    recetas.push(...data.map(resumirRecetaPropia).filter(Boolean))
+    offset += data.length
+  }
+  return recetas
 }

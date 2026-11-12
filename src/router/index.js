@@ -24,6 +24,10 @@ const router = createRouter({
       component: () => import('@/views/AdminView.vue'),
     },
     {
+      path: '/mis-recetas', name: 'mis-recetas', meta: { requiereAuth: true },
+      component: () => import('@/views/MisRecetasView.vue'),
+    },
+    {
       path: '/recetas/crear', name: 'crear-receta', meta: { requiereAuth: true },
       component: () => import('@/views/CrearRecetaView.vue'),
     },
