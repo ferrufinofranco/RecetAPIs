@@ -35,6 +35,15 @@ test('tolera imagen y relaciones ausentes sin agregar datos simulados', () => {
   assert.deepEqual(receta.pasos, [])
 })
 
+test('los ingredientes inactivos siguen presentes en las recetas existentes', () => {
+  const receta = adaptarReceta({
+    id: 1,
+    receta_id: 1,
+    receta_ingredientes: [{ cantidad: 200, unidad: 'g', ingredientes: { id: 4, nombre: 'Harina', activo: false } }],
+  }, url)
+  assert.deepEqual(receta.ingredientes, [{ id: 4, nombre: 'Harina', cantidad: 200, unidad: 'g' }])
+})
+
 test('resuelve URLs públicas y rutas de Storage con bucket', () => {
   assert.equal(resolverImagen(null, url), '')
   assert.equal(resolverImagen('https://example.com/foto.jpg', url), 'https://example.com/foto.jpg')

@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createServer } from 'vite'
 
-test('ingredientes: listado, alta y edición REST sin escrituras reales', async (t) => {
+test('ingredientes: listado, alta, edición y desactivación REST sin escrituras reales', async (t) => {
   const server = await createServer({
     server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent',
     define: {
@@ -13,7 +13,7 @@ test('ingredientes: listado, alta y edición REST sin escrituras reales', async 
   try {
     const { getSupabase } = await server.ssrLoadModule('/src/services/supabase.js')
     const { api } = await server.ssrLoadModule('/src/services/api.js')
-    const { obtenerIngredientes, crearIngrediente, renombrarIngrediente } = await server.ssrLoadModule('/src/services/ingredientes.js')
+    const { obtenerIngredientes, crearIngrediente, renombrarIngrediente, desactivarIngrediente } = await server.ssrLoadModule('/src/services/ingredientes.js')
     const { mensajeErrorIngrediente } = await server.ssrLoadModule('/src/utils/ingredientes.js')
     getSupabase().auth.getSession = async () => ({
       data: { session: { access_token: 'jwt-administrador' } }, error: null,
@@ -108,7 +108,48 @@ test('ingredientes: listado, alta y edición REST sin escrituras reales', async 
       fallo = null
     })
 
+    await t.test('desactivación usa POST a la RPC con ID, JWT y apikey, sin PATCH de activo', async () => {
+      respuesta = null
+      const cantidad = peticiones.length
+      await desactivarIngrediente(activo)
+      assert.equal(peticiones.length, cantidad + 1)
+      assert.equal(ultima().method, 'post')
+      assert.equal(ultima().url, 'rpc/desactivar_ingrediente')
+      assert.deepEqual(JSON.parse(ultima().data), { p_ingrediente_id: 1 })
+      assert.equal(ultima().headers.get('Authorization'), 'Bearer jwt-administrador')
+      assert.equal(ultima().headers.get('apikey'), 'sb_publishable_test')
+    })
+
+    await t.test('no permite desactivar de nuevo un ingrediente inactivo', async () => {
+      const cantidad = peticiones.length
+      await assert.rejects(() => desactivarIngrediente(inactivo), { code: 'INGREDIENTE_INACTIVO' })
+      assert.equal(peticiones.length, cantidad)
+    })
+
+    await t.test('la lectura conserva ingredientes desactivados y no agrega filtro de estado', async () => {
+      respuesta = [{ ...activo, activo: false }, inactivo]
+      assert.deepEqual(await obtenerIngredientes(), respuesta)
+      assert.deepEqual(ultima().params, { select: 'id,nombre,activo', order: 'nombre.asc' })
+    })
+
+    await t.test('errores de RPC se propagan con mensaje de desactivación sin informar éxito', async () => {
+      fallo = { response: { status: 403, data: { code: '42501' } } }
+      await assert.rejects(() => desactivarIngrediente(activo), (error) => {
+        assert.match(mensajeErrorIngrediente(error, 'desactivar'), /permisos/)
+        return true
+      })
+      fallo = new Error('Network Error')
+      await assert.rejects(() => desactivarIngrediente(activo), (error) => {
+        assert.match(mensajeErrorIngrediente(error, 'desactivar'), /No se pudo desactivar/)
+        return true
+      })
+      fallo = null
+    })
+
     assert.ok(peticiones.every((config) => ['get', 'post', 'patch'].includes(config.method)))
+    for (const config of peticiones.filter((config) => config.method === 'patch')) {
+      assert.deepEqual(Object.keys(JSON.parse(config.data)), ['nombre'])
+    }
   } finally {
     await server.close()
   }

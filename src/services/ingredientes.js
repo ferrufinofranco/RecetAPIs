@@ -36,3 +36,11 @@ export async function renombrarIngrediente(ingrediente, nombre) {
   }
   return data[0]
 }
+
+export async function desactivarIngrediente(ingrediente) {
+  if (!ingrediente.activo) {
+    throw new ErrorIngrediente('El ingrediente ya está inactivo.', 'INGREDIENTE_INACTIVO')
+  }
+  // Solo la RPC valida permisos y cambia el estado, sin tocar las recetas.
+  await api.post('rpc/desactivar_ingrediente', { p_ingrediente_id: ingrediente.id })
+}

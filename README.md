@@ -42,10 +42,12 @@ await api.patch('categorias', { nombre: 'NOMBRE_ACTUAL_DE_LA_CATEGORIA_DE_PRUEBA
 
 ## Ingredientes administrativos
 
-- En `/admin`, la sección Ingredientes lista activos e inactivos con su estado visible. Permite crear y renombrar ambos; no incluye eliminación, desactivación ni reactivación.
+- En `/admin`, la sección Ingredientes lista activos e inactivos con su estado visible. Permite crear y renombrar ambos, y desactivar únicamente los activos; no incluye eliminación física ni reactivación.
 - Lectura: `GET /rest/v1/ingredientes?select=id,nombre,activo&order=nombre.asc`, sin filtro por estado. Alta: `POST /rest/v1/ingredientes?select=id,nombre,activo`. Edición: `PATCH /rest/v1/ingredientes?id=eq.ID&select=id,nombre,activo`. Ambos cuerpos contienen únicamente `{ "nombre": "..." }`, con espacios laterales recortados; se reutilizan `apikey`, JWT y `Prefer: return=representation`.
 - Probar con una cuenta admin: crear un nombre nuevo, editarlo, cancelar una edición y comprobar el listado actualizado. También editar un ingrediente inactivo existente y confirmar que no cambia su estado. Un nombre vacío o solo espacios se rechaza; un duplicado, incluso con distintas mayúsculas o espacios laterales, muestra el error de unicidad de Supabase (código `23505`).
-- Si la escritura devuelve cero filas, no se informa éxito. Si solo falla la lectura posterior al guardado, se conserva el mensaje de éxito y se permite reintentar el listado antes de otra operación. Las pruebas de ingredientes usan REST/Auth simulados y no crean ni modifican datos reales.
+- El botón **Desactivar** pide confirmación y usa exclusivamente `POST /rest/v1/rpc/desactivar_ingrediente` con `{ "p_ingrediente_id": ID }`, mediante el mismo Axios con `apikey` y JWT. La RPC valida el rol y desactiva; no se ejecuta PATCH sobre `activo` ni se alteran recetas. El botón no se muestra para inactivos y se bloquean las operaciones mientras se procesa.
+- Para probar desactivación, usar un ingrediente activo de prueba: cancelar primero y comprobar que sigue activo; luego confirmar y verificar que permanece en el listado con la etiqueta **Inactivo**, sin botón Desactivar y con edición disponible. Si aparece en una receta existente, comprobar que siga figurando en su detalle. No se agrega ningún filtro global de ingredientes activos.
+- Si POST de alta o PATCH de nombre devuelve cero filas, no se informa éxito. La RPC de desactivación no requiere devolver filas. Si solo falla la lectura posterior a una operación exitosa, se conserva el mensaje de éxito y se permite reintentar el listado antes de otra operación. Las pruebas de ingredientes usan REST/Auth simulados y no crean ni modifican datos reales.
 
 ## Recommended IDE Setup
 
