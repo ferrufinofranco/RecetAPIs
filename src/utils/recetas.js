@@ -1,12 +1,14 @@
 export function resolverImagen(path, supabaseUrl) {
   if (!path) return ''
   if (/^https?:\/\//i.test(path)) return path
-  // Un path de Storage debe incluir el bucket: "bucket/carpeta/archivo.jpg".
+  // Las rutas actuales son UUID/archivo; también se aceptan URLs y rutas legacy.
   const ruta = path.replace(/^\/+/, '')
   if (ruta.startsWith('storage/v1/object/public/')) {
     return `${supabaseUrl.replace(/\/+$/, '')}/${ruta}`
   }
-  return `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/${ruta.split('/').map(encodeURIComponent).join('/')}`
+  // Contrato actual: UUID/archivo, bucket fijo. Conservar rutas legacy con bucket.
+  const completa = /^(recetas|recetas-imagenes)\//.test(ruta) ? ruta : `recetas-imagenes/${ruta}`
+  return `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/${completa.split('/').map(encodeURIComponent).join('/')}`
 }
 
 export function adaptarReceta(version, supabaseUrl) {

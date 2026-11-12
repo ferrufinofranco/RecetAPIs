@@ -80,3 +80,119 @@ export async function obtenerMisRecetas(autorId, signal) {
   }
   return recetas
 }
+
+export async function obtenerPropuestaPropia(versionId, autorId, signal) {
+  if (!autorId) throw new Error('Iniciá sesión para consultar tu propuesta.')
+  if (!/^\d+$/.test(String(versionId))) return null
+  const { data } = await api.get('receta_versiones', {
+    params: {
+      select: [
+        'id,receta_id,estado,motivo_rechazo,titulo,descripcion,porciones,tiempo_minutos,dificultad,imagen_path',
+        'receta:recetas!inner(id,autor_id)',
+        'receta_categorias(categoria_id)',
+        'receta_ingredientes(ingrediente_id,cantidad,unidad,ingredientes(nombre,activo))',
+        'receta_pasos(orden,descripcion)',
+      ].join(','),
+      id: `eq.${versionId}`,
+      estado: 'in.(pendiente,rechazada)',
+      'receta.autor_id': `eq.${autorId}`,
+      'receta.eliminada_en': 'is.null',
+      limit: 1,
+    },
+    signal,
+  })
+  const propuesta = data[0]
+  if (!propuesta || propuesta.receta?.autor_id !== autorId || !['pendiente', 'rechazada'].includes(propuesta.estado)) return null
+  return propuesta
+}
+
+export async function editarPropuestaReceta(versionId, formulario) {
+  const { data } = await api.post('rpc/editar_propuesta_receta', {
+    p_version_id: versionId,
+    p_datos: prepararDatosReceta(formulario),
+  })
+  return data
+}
+
+export async function obtenerEdicionPublicada(recetaId, autorId, signal, { administrativa = false } = {}) {
+  if (!autorId) throw new Error('Iniciá sesión para consultar tu receta.')
+  if (!/^\d+$/.test(String(recetaId))) return null
+  const { data } = await api.get('recetas', {
+    params: {
+      select: [
+        'id,autor_id,receta_versiones(',
+        'id,numero,estado,titulo,descripcion,porciones,tiempo_minutos,dificultad,imagen_path,',
+        'receta_categorias(categoria_id),',
+        'receta_ingredientes(ingrediente_id,cantidad,unidad,ingredientes(nombre,activo)),',
+        'receta_pasos(orden,descripcion))',
+      ].join(''),
+      id: `eq.${recetaId}`,
+      ...(administrativa ? {} : { autor_id: `eq.${autorId}` }),
+      eliminada_en: 'is.null',
+      'receta_versiones.estado': 'in.(publicada,pendiente)',
+      'receta_versiones.order': 'numero.desc',
+      limit: 1,
+    },
+    signal,
+  })
+  const receta = data[0]
+  if (!receta || (!administrativa && receta.autor_id !== autorId)) return null
+  const versiones = [...(receta.receta_versiones ?? [])].sort((a, b) => b.numero - a.numero)
+  const publicada = versiones.find((version) => version.estado === 'publicada')
+  if (!publicada) return null
+  return {
+    publicada: { ...publicada, receta_id: receta.id },
+    pendienteId: versiones.find((version) => version.estado === 'pendiente')?.id ?? null,
+  }
+}
+
+export async function proponerEdicionReceta(recetaId, formulario) {
+  const { data } = await api.post('rpc/proponer_edicion_receta', {
+    p_receta_id: recetaId,
+    p_datos: prepararDatosReceta(formulario),
+  })
+  return data
+}
+
+export async function eliminarReceta(recetaId) {
+  await api.post('rpc/eliminar_receta', { p_receta_id: recetaId })
+}
+
+export async function adminEditarReceta(recetaId, formulario, imagen = {}) {
+  const datos = prepararDatosReceta(formulario)
+  if (Object.hasOwn(imagen, 'imagen_path')) datos.imagen_path = imagen.imagen_path
+  const { data } = await api.post('rpc/admin_editar_receta', { p_receta_id: recetaId, p_datos: datos })
+  return data
+}
+
+export async function obtenerRecetasAdministracion(signal) {
+  const recetas = []
+  let offset = 0
+  while (true) {
+    const { data } = await api.get('recetas', {
+      params: {
+        select: 'id,autor_id,creada_en,receta_versiones(id,numero,estado,titulo,motivo_rechazo)',
+        eliminada_en: 'is.null',
+        order: 'creada_en.desc,id.desc',
+        'receta_versiones.order': 'numero.desc',
+        offset,
+        limit: 1000,
+      },
+      signal,
+    })
+    if (!data.length) break
+    for (const receta of data) {
+      const principal = resumirRecetaPropia(receta)
+      const ultima = [...(receta.receta_versiones ?? [])].sort((a, b) => b.numero - a.numero)[0]
+      recetas.push({
+        ...(principal ?? {
+          id: String(receta.id), titulo: ultima?.titulo ?? 'Receta sin versión visible',
+          estado: ultima?.estado ?? 'sin_version',
+        }),
+        autorId: receta.autor_id,
+      })
+    }
+    offset += data.length
+  }
+  return recetas
+}

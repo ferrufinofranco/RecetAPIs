@@ -20,8 +20,26 @@ const router = createRouter({
       component: () => import('@/views/AccesoDenegadoView.vue'),
     },
     {
+      path: '/admin/recetas/:recetaId/editar', name: 'admin-editar-receta',
+      meta: { requiereAuth: true, rol: 'admin' },
+      component: () => import('@/views/EditarPublicadaView.vue'),
+      props: (route) => ({ recetaId: route.params.recetaId, administrativa: true }),
+    },
+    {
       path: '/admin', name: 'admin', meta: { requiereAuth: true, rol: 'admin' },
       component: () => import('@/views/AdminView.vue'),
+    },
+    {
+      path: '/mis-solicitudes', name: 'mis-solicitudes', meta: { requiereAuth: true },
+      component: () => import('@/views/MisSolicitudesView.vue'),
+    },
+    {
+      path: '/mis-recetas/:recetaId/editar-publicada', name: 'editar-publicada', meta: { requiereAuth: true },
+      component: () => import('@/views/EditarPublicadaView.vue'), props: true,
+    },
+    {
+      path: '/mis-recetas/propuestas/:versionId/editar', name: 'editar-propuesta', meta: { requiereAuth: true },
+      component: () => import('@/views/EditarPropuestaView.vue'), props: true,
     },
     {
       path: '/mis-recetas', name: 'mis-recetas', meta: { requiereAuth: true },

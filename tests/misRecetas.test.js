@@ -11,7 +11,7 @@ test('una publicación con cambios pendientes genera una tarjeta publicada con i
   const registro = receta([version(3, 'pendiente'), version(1, 'rechazada'), version(2, 'publicada', 'Título publicado')])
   const resumen = resumirRecetaPropia(registro)
   assert.deepEqual(resumen, {
-    id: '5', creadaEn: registro.creada_en, titulo: 'Título publicado', estado: 'publicada', cambiosPendientes: true, motivoRechazo: null,
+    id: '5', creadaEn: registro.creada_en, titulo: 'Título publicado', estado: 'publicada', versionEditableId: 3, cambiosPendientes: true, motivoRechazo: null,
   })
   assert.equal(filtrarMisRecetas([resumen], 'publicada').length, 1)
   assert.equal(filtrarMisRecetas([resumen], 'pendiente').length, 0)
@@ -22,6 +22,7 @@ test('sin publicación usa la propuesta pendiente o rechazada de mayor número',
   const versiones = [version(9, 'descartada'), version(2, 'pendiente'), { ...version(3, 'rechazada'), motivo_rechazo: 'Faltan detalles' }]
   const resumen = resumirRecetaPropia(receta(versiones))
   assert.equal(resumen.estado, 'rechazada')
+  assert.equal(resumen.versionEditableId, 3)
   assert.equal(resumen.titulo, 'Versión 3')
   assert.equal(resumen.motivoRechazo, 'Faltan detalles')
   assert.equal(resumen.cambiosPendientes, false)

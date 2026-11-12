@@ -1,17 +1,28 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { obtenerMisRecetas } from '@/services/recetas'
 import { filtrarMisRecetas } from '@/utils/misRecetas'
 import MiRecetaCard from '@/components/recetas/MiRecetaCard.vue'
+import { useEliminarReceta } from '@/composables/useEliminarReceta'
 
 const auth = useAuthStore()
+const route = useRoute()
 const recetas = ref([])
 const estado = ref('todas')
 const cargando = ref(true)
 const error = ref('')
 const intento = ref(0)
 const resultados = computed(() => filtrarMisRecetas(recetas.value, estado.value))
+const { eliminandoId, errorBaja, exitoBaja, eliminar } = useEliminarReceta()
+
+function solicitarBaja(receta) {
+  return eliminar(receta, () => {
+    recetas.value = recetas.value.filter((item) => item.id !== receta.id)
+    intento.value++
+  })
+}
 
 watch([() => auth.user?.id, intento], async ([id], _, onCleanup) => {
   const controller = new AbortController()
@@ -36,6 +47,9 @@ watch([() => auth.user?.id, intento], async ([id], _, onCleanup) => {
 <template>
   <section aria-labelledby="titulo-mis-recetas">
     <h1 id="titulo-mis-recetas">Mis recetas</h1>
+    <p v-if="exitoBaja" class="mensaje-info" role="status">{{ exitoBaja }}</p>
+    <p v-if="errorBaja" class="mensaje-error" role="alert">{{ errorBaja }}</p>
+    <p v-if="route.query.propuesta === 'enviada'" class="mensaje-info" role="status">Propuesta de edición enviada para aprobación. La versión publicada sigue visible en el catálogo.</p>
     <p>Consultá tus recetas y el estado de sus propuestas.</p>
     <div class="campo filtro-mis-recetas">
       <label for="estado-mis-recetas">Estado</label>
@@ -58,7 +72,8 @@ watch([() => auth.user?.id, intento], async ([id], _, onCleanup) => {
     <template v-else>
       <p class="recuento" role="status">{{ resultados.length }} recetas encontradas</p>
       <div v-if="resultados.length" class="recetas-grid">
-        <MiRecetaCard v-for="receta in resultados" :key="receta.id" :receta="receta" />
+        <MiRecetaCard v-for="receta in resultados" :key="receta.id" :receta="receta"
+          :bloqueada="eliminandoId !== null" :eliminando="eliminandoId === receta.id" @eliminar="solicitarBaja" />
       </div>
       <p v-else class="estado-vacio">No tenés recetas con este estado.</p>
     </template>

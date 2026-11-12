@@ -13,6 +13,7 @@ export function resumirRecetaPropia(receta) {
     titulo: principal.titulo,
     creadaEn: receta.creada_en,
     estado: principal.estado,
+    versionEditableId: publicada ? versiones.find((version) => version.estado === 'pendiente')?.id ?? null : principal.id,
     cambiosPendientes,
     motivoRechazo: rechazo?.motivo_rechazo ?? null,
   }

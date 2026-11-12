@@ -50,13 +50,13 @@ export function prepararDatosReceta(formulario) {
   }
 }
 
-export function mensajeErrorCrearReceta(error) {
+export function mensajeErrorCrearReceta(error, accion = 'crear la receta') {
   if (error instanceof ErrorCrearReceta) return error.message
   if ([401, 403].includes(error.response?.status) || error.response?.data?.code === '42501') {
-    return 'No se pudo crear la receta. Verificá que tu sesión esté activa y tenga permisos.'
+    return `No se pudo ${accion}. Verificá que tu sesión esté activa y tenga permisos.`
   }
   if (!error.response) {
     return 'No se pudo confirmar el guardado. Revisá la conexión; la solicitud pudo haberse procesado. Verificá antes de volver a enviarla.'
   }
-  return 'No se pudo crear la receta. Revisá los datos y que las categorías e ingredientes sigan activos.'
+  return `No se pudo ${accion}. Revisá los datos, las categorías e ingredientes permitidos y que la propuesta siga siendo editable.`
 }
