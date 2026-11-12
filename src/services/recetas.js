@@ -4,9 +4,9 @@ import { adaptarReceta } from '@/utils/recetas'
 const select = [
   'id,receta_id,numero,titulo,descripcion,tiempo_minutos,porciones,dificultad,imagen_path',
   'receta:recetas!inner(id)',
-  'version_categorias(categorias(id,nombre))',
-  'version_ingredientes(cantidad,unidad,ingredientes(id,nombre))',
-  'version_pasos(orden,descripcion)',
+  'receta_categorias(categorias(id,nombre))',
+  'receta_ingredientes(cantidad,unidad,ingredientes(id,nombre))',
+  'receta_pasos(orden,descripcion)',
 ].join(',')
 
 function parametrosPublicos() {

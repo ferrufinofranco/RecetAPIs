@@ -92,4 +92,6 @@ button:disabled { opacity: .65; cursor: wait; }
 .categoria-formulario label { display: block; font-weight: 600; margin-bottom: .4rem; }
 .categoria-acciones { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
 .boton-secundario { background: white; color: #365f40; }
+.categorias-fila-acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+.boton-eliminar { background: #fff2e9; color: #8b3525; border-color: #c77c57; }
 @media (max-width: 700px) { .categorias-panel { grid-template-columns: 1fr; } }

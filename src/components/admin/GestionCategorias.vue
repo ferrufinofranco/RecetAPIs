@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { crearCategoria, obtenerCategorias, renombrarCategoria } from '@/services/categorias'
+import { crearCategoria, eliminarCategoria, obtenerCategorias, renombrarCategoria } from '@/services/categorias'
 import { esCategoriaGeneral, mensajeErrorCategoria } from '@/utils/categorias'
 import CategoriaFormulario from './CategoriaFormulario.vue'
 
@@ -9,6 +9,7 @@ const seleccionada = ref(null)
 const nombre = ref('')
 const cargando = ref(true)
 const guardando = ref(false)
+const eliminandoId = ref(null)
 const errorListado = ref('')
 const errorOperacion = ref('')
 const exito = ref('')
@@ -19,7 +20,7 @@ async function cargarCategorias() {
   try {
     categorias.value = await obtenerCategorias()
   } catch {
-    errorListado.value = 'No se pudo actualizar el listado. Reintentá la lectura antes de guardar otra vez.'
+    errorListado.value = 'No se pudo actualizar el listado. Reintentá la lectura antes de realizar otra operación.'
   } finally {
     cargando.value = false
   }
@@ -62,13 +63,38 @@ async function guardar() {
   }
 }
 
+async function eliminar(categoria) {
+  if (guardando.value || cargando.value || errorListado.value || esCategoriaGeneral(categoria)) return
+  const confirmado = window.confirm(
+    `¿Eliminar la categoría «${categoria.nombre}»?\n\n` +
+    'Se desactivará y se quitará de las recetas. Las versiones que queden sin categorías recibirán General.',
+  )
+  if (!confirmado) return
+
+  guardando.value = true
+  eliminandoId.value = categoria.id
+  errorOperacion.value = ''
+  exito.value = ''
+  try {
+    await eliminarCategoria(categoria)
+    if (seleccionada.value?.id === categoria.id) nuevaCategoria()
+    exito.value = 'Categoría eliminada correctamente.'
+    await cargarCategorias()
+  } catch (error) {
+    errorOperacion.value = mensajeErrorCategoria(error, 'eliminar')
+  } finally {
+    eliminandoId.value = null
+    guardando.value = false
+  }
+}
+
 onMounted(cargarCategorias)
 </script>
 
 <template>
   <section class="admin-categorias" aria-labelledby="titulo-categorias">
     <h2 id="titulo-categorias">Categorías</h2>
-    <p>Creá y renombrá categorías activas. General está protegida y no puede modificarse.</p>
+    <p>Creá, renombrá y eliminá categorías activas. General está protegida y no puede modificarse ni eliminarse.</p>
     <p v-if="exito" class="mensaje-info" role="status">{{ exito }}</p>
     <p v-if="errorOperacion" class="mensaje-error" role="alert">{{ errorOperacion }}</p>
     <div class="categorias-panel">
@@ -83,14 +109,20 @@ onMounted(cargarCategorias)
           <li v-for="categoria in categorias" :key="categoria.id">
             <span>{{ categoria.nombre }}</span>
             <span v-if="esCategoriaGeneral(categoria)" class="dato">Protegida</span>
-            <button v-else type="button" class="boton-secundario"
-              :aria-label="`Editar ${categoria.nombre}`" :disabled="guardando || cargando" @click="editar(categoria)">
-              Editar
-            </button>
+            <div v-else class="categorias-fila-acciones">
+              <button type="button" class="boton-secundario"
+                :aria-label="`Editar ${categoria.nombre}`" :disabled="guardando || cargando" @click="editar(categoria)">
+                Editar
+              </button>
+              <button type="button" class="boton-eliminar"
+                :aria-label="`Eliminar ${categoria.nombre}`" :disabled="guardando || cargando" @click="eliminar(categoria)">
+                {{ eliminandoId === categoria.id ? 'Eliminando…' : 'Eliminar' }}
+              </button>
+            </div>
           </li>
         </ul>
       </div>
-      <CategoriaFormulario v-model:nombre="nombre" :editando="!!seleccionada" :guardando="guardando"
+      <CategoriaFormulario v-model:nombre="nombre" :editando="!!seleccionada" :guardando="guardando && eliminandoId === null"
         :deshabilitado="guardando || cargando || !!errorListado" @guardar="guardar" @cancelar="nuevaCategoria" />
     </div>
   </section>

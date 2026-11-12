@@ -52,3 +52,11 @@ export async function renombrarCategoria(categoria: Categoria, nombre: string): 
   }
   return data[0]!
 }
+
+export async function eliminarCategoria(categoria: Categoria): Promise<void> {
+  if (esCategoriaGeneral(categoria)) {
+    throw new ErrorCategoria('La categoría General está protegida y no se puede eliminar.', 'GENERAL_PROTEGIDA')
+  }
+  // La RPC valida permisos y resuelve la desactivación y reasignación de categorías.
+  await api.post('rpc/eliminar_categoria', { p_categoria_id: categoria.id })
+}

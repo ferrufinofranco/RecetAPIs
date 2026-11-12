@@ -15,14 +15,14 @@ export function esCategoriaGeneral(categoria) {
   return categoria.nombre.trim().toLowerCase() === 'general'
 }
 
-export function mensajeErrorCategoria(error) {
+export function mensajeErrorCategoria(error, accion = 'guardar') {
   if (error instanceof ErrorCategoria) return error.message
   if (error.response?.data?.code === '23505') {
     return 'Ya existe una categoría con ese nombre. Elegí otro.'
   }
-  if ([401, 403].includes(error.response?.status)) {
+  if ([401, 403].includes(error.response?.status) || error.response?.data?.code === '42501') {
     return 'No tenés permisos para realizar esta operación o tu sesión venció.'
   }
   if (error.response?.status === 409) return 'El nombre genera un conflicto. Probá con otro.'
-  return 'No se pudo guardar la categoría. Revisá la conexión y volvé a intentar.'
+  return `No se pudo ${accion} la categoría. Revisá la conexión y volvé a intentar.`
 }

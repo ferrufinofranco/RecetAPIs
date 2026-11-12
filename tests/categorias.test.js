@@ -13,7 +13,7 @@ test('categorías: consultas REST y validaciones sin escrituras reales', async (
   try {
     const { getSupabase } = await server.ssrLoadModule('/src/services/supabase.js')
     const { api } = await server.ssrLoadModule('/src/services/api.js')
-    const { obtenerCategorias, crearCategoria, renombrarCategoria } = await server.ssrLoadModule('/src/services/categorias.ts')
+    const { obtenerCategorias, crearCategoria, renombrarCategoria, eliminarCategoria } = await server.ssrLoadModule('/src/services/categorias.ts')
     const { mensajeErrorCategoria } = await server.ssrLoadModule('/src/utils/categorias.js')
     getSupabase().auth.getSession = async () => ({
       data: { session: { access_token: 'jwt-administrador' } }, error: null,
@@ -63,6 +63,39 @@ test('categorías: consultas REST y validaciones sin escrituras reales', async (
       await assert.rejects(() => renombrarCategoria({ id: 1, nombre: 'General' }, 'Otro'), { code: 'GENERAL_PROTEGIDA' })
       await assert.rejects(() => renombrarCategoria({ id: 1, nombre: ' GENERAL ' }, 'Otro'), { code: 'GENERAL_PROTEGIDA' })
       assert.equal(peticiones.length, cantidad)
+    })
+
+    await t.test('eliminación usa únicamente POST a la RPC con el ID, JWT y apikey', async () => {
+      respuesta = null
+      await eliminarCategoria(categoria)
+      assert.equal(ultima().method, 'post')
+      assert.equal(ultima().url, 'rpc/eliminar_categoria')
+      assert.deepEqual(JSON.parse(ultima().data), { p_categoria_id: 7 })
+      assert.equal(ultima().headers.get('Authorization'), 'Bearer jwt-administrador')
+      assert.equal(ultima().headers.get('apikey'), 'sb_publishable_test')
+      assert.ok(peticiones.every((config) => config.method !== 'delete'))
+    })
+
+    await t.test('General tampoco puede eliminarse desde el servicio', async () => {
+      const cantidad = peticiones.length
+      for (const nombre of ['General', ' GENERAL ']) {
+        await assert.rejects(() => eliminarCategoria({ id: 1, nombre }), { code: 'GENERAL_PROTEGIDA' })
+      }
+      assert.equal(peticiones.length, cantidad)
+    })
+
+    await t.test('un error de RPC se propaga sin informar eliminación exitosa', async () => {
+      fallo = { response: { status: 403, data: { code: '42501' } } }
+      await assert.rejects(() => eliminarCategoria(categoria), (error) => {
+        assert.match(mensajeErrorCategoria(error, 'eliminar'), /permisos/)
+        return true
+      })
+      fallo = new Error('Network Error')
+      await assert.rejects(() => eliminarCategoria(categoria), (error) => {
+        assert.match(mensajeErrorCategoria(error, 'eliminar'), /No se pudo eliminar/)
+        return true
+      })
+      fallo = null
     })
 
     await t.test('un PATCH sin filas afectadas no se informa como éxito', async () => {

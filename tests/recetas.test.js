@@ -11,9 +11,9 @@ test('adapta relaciones, cantidades y unidades sin modificar el orden original d
     receta_id: 3,
     titulo: 'Pan casero',
     tiempo_minutos: 30,
-    version_categorias: [{ categorias: { id: 1, nombre: 'General' } }, { categorias: { id: 2, nombre: 'Desayuno' } }],
-    version_ingredientes: [{ cantidad: 200, unidad: 'g', ingredientes: { id: 4, nombre: 'Harina' } }],
-    version_pasos: [{ orden: 2, descripcion: 'Cocinar' }, { orden: 1, descripcion: 'Mezclar' }],
+    receta_categorias: [{ categorias: { id: 1, nombre: 'General' } }, { categorias: { id: 2, nombre: 'Desayuno' } }],
+    receta_ingredientes: [{ cantidad: 200, unidad: 'g', ingredientes: { id: 4, nombre: 'Harina' } }],
+    receta_pasos: [{ orden: 2, descripcion: 'Cocinar' }, { orden: 1, descripcion: 'Mezclar' }],
   }
   const receta = adaptarReceta(version, url)
   assert.equal(receta.id, '3')
@@ -22,11 +22,13 @@ test('adapta relaciones, cantidades y unidades sin modificar el orden original d
   assert.deepEqual(receta.categorias, ['General', 'Desayuno'])
   assert.deepEqual(receta.ingredientes, [{ id: 4, nombre: 'Harina', cantidad: 200, unidad: 'g' }])
   assert.deepEqual(receta.pasos.map((paso) => paso.orden), [1, 2])
-  assert.equal(version.version_pasos[0].orden, 2)
+  assert.equal(version.receta_pasos[0].orden, 2)
+  assert.deepEqual(filtrarRecetas([receta], 'pan', 'Desayuno'), [receta])
+  assert.deepEqual(filtrarRecetas([receta], '', 'Postre'), [])
 })
 
 test('tolera imagen y relaciones ausentes sin agregar datos simulados', () => {
-  const receta = adaptarReceta({ id: 1, receta_id: 1, version_categorias: [{ categorias: null }], version_ingredientes: [{ ingredientes: null }] }, url)
+  const receta = adaptarReceta({ id: 1, receta_id: 1, receta_categorias: [{ categorias: null }], receta_ingredientes: [{ ingredientes: null }] }, url)
   assert.equal(receta.imagen, '')
   assert.deepEqual(receta.categorias, [])
   assert.deepEqual(receta.ingredientes, [])

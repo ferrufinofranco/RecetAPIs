@@ -1,0 +1,24 @@
+export class ErrorIngrediente extends Error {
+  constructor(message, code) {
+    super(message)
+    this.code = code
+  }
+}
+
+export function validarNombreIngrediente(nombre) {
+  const limpio = nombre.trim()
+  if (!limpio) throw new ErrorIngrediente('Ingresá un nombre para el ingrediente.', 'NOMBRE_VACIO')
+  return limpio
+}
+
+export function mensajeErrorIngrediente(error) {
+  if (error instanceof ErrorIngrediente) return error.message
+  if (error.response?.data?.code === '23505') {
+    return 'Ya existe un ingrediente con ese nombre, sin distinguir mayúsculas ni espacios laterales.'
+  }
+  if ([401, 403].includes(error.response?.status) || error.response?.data?.code === '42501') {
+    return 'No tenés permisos para realizar esta operación o tu sesión venció.'
+  }
+  if (error.response?.status === 409) return 'El nombre genera un conflicto. Probá con otro.'
+  return 'No se pudo guardar el ingrediente. Revisá la conexión y volvé a intentar.'
+}

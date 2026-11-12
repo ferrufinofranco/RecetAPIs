@@ -19,10 +19,10 @@ export function adaptarReceta(version, supabaseUrl) {
     porciones: version.porciones,
     tiempoMinutos: version.tiempo_minutos,
     dificultad: version.dificultad,
-    categorias: (version.version_categorias ?? [])
+    categorias: (version.receta_categorias ?? [])
       .filter((relacion) => relacion.categorias)
       .map((relacion) => relacion.categorias.nombre),
-    ingredientes: (version.version_ingredientes ?? [])
+    ingredientes: (version.receta_ingredientes ?? [])
       .filter((relacion) => relacion.ingredientes)
       .map((relacion) => ({
         id: relacion.ingredientes.id,
@@ -30,6 +30,6 @@ export function adaptarReceta(version, supabaseUrl) {
         cantidad: relacion.cantidad,
         unidad: relacion.unidad,
       })),
-    pasos: [...(version.version_pasos ?? [])].sort((a, b) => a.orden - b.orden),
+    pasos: [...(version.receta_pasos ?? [])].sort((a, b) => a.orden - b.orden),
   }
 }
