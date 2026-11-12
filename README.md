@@ -155,6 +155,16 @@ npm run build
 - Límites: el estado persistido y la creación/conservación de versiones son responsabilidad de las RPC. Los tests verifican payloads, respuestas simuladas y resultado en la interfaz; no demuestran el comportamiento SQL ni RLS reales. Sigue pendiente validar con un proyecto Supabase de prueba que editar una pendiente conserva su ID, reenviar crea otra versión y conserva la rechazada, y un usuario ajeno no puede escribir. No se realizan escrituras, registros de usuarios ni llamadas al Supabase principal.
 - `npm audit` informa cuatro avisos moderados en dependencias transitivas de desarrollo de Vue Test Utils (`js-beautify`, `editorconfig`, `glob`, `minimatch`). No se aplican cambios forzados ni actualizaciones de dependencias de producción para resolverlos dentro de esta tarea.
 
+## Integración continua
+
+El [workflow CI](.github/workflows/ci.yml) se ejecuta en cada push a `main`, en pull requests hacia `main` y manualmente desde **Actions → CI → Run workflow** una vez que está en la rama predeterminada.
+
+En Ubuntu con Node.js 24.19.0 y caché de npm basada en `package-lock.json`, ejecuta `npm ci`, `npm test`, `npm run build` y `node tools/verificar-pwa.mjs` sobre el build recién generado. Los tests usan dobles y la verificación PWA inspecciona los archivos compilados. `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` se necesitan al usar la aplicación con Supabase. CI puede compilar y verificar la PWA sin configurarlas ni cargar credenciales. La suite `test:rls` queda fuera de CI.
+
+En **GitHub → Actions → CI**, abrí la ejecución del commit y el job **Tests, build y PWA**. Si falla, abrí el primer paso en rojo y leé su log para identificar si el problema está en la preparación, la instalación, los tests, el build o la PWA. Las verificaciones siguientes se omiten cuando falla un paso anterior.
+
+Quedan pendientes el empaquetado con Docker y Nginx, y el despliegue automático del artefacto aprobado.
+
 ## Recommended IDE Setup
 
 [VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
