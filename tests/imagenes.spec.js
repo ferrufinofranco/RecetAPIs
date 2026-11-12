@@ -194,3 +194,10 @@ it('sin version_id inequívoco no adivina un ID ni repite contenido y permite co
   expect(() => obtenerVersionGuardada(12)).toThrow()
   expect(resolverImagen('uuid-propio/nueva.webp', 'https://example.com')).toBe('https://example.com/storage/v1/object/public/recetas-imagenes/uuid-propio/nueva.webp')
 })
+
+it('un version_id inseguro se rechaza antes de enviarlo a la RPC de imagen', () => {
+  expect(() => obtenerVersionGuardada({ version_id: 2 ** 53 })).toThrow(/entero seguro/)
+  expect(() => obtenerVersionGuardada({ version_id: NaN })).toThrow(/version_id/)
+  expect(obtenerVersionGuardada({ version_id: 84 })).toBe(84)
+  expect(obtenerVersionGuardada({ version_id: '9007199254740993' })).toBe('9007199254740993')
+})

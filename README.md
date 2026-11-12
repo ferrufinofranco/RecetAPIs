@@ -1,5 +1,9 @@
 # RecetAPIs
 
+## Auditoría de integración
+
+Ver [informe de auditoría](docs/integracion/auditoria-supabase.md), [protocolo manual de sandbox](docs/integracion/protocolo-manual.md) e [inventario SQL de solo lectura](docs/integracion/inventario-solo-lectura.sql). El comando `node tools/auditar-supabase-solo-lectura.mjs` realiza únicamente GET anónimos y no certifica RPC, persistencia ni RLS autenticadas. La [suite RLS real](docs/integracion/pruebas-rls.md) aprobó sus ocho casos en el único proyecto autorizado explícitamente como exclusivo de testing, sin datos reales; no ejecutar escrituras de prueba en producción.
+
 This template should help get you started developing with Vue 3 in Vite.
 
 ## Autenticación y roles
@@ -129,6 +133,13 @@ await api.patch('categorias', { nombre: 'NOMBRE_ACTUAL_DE_LA_CATEGORIA_DE_PRUEBA
 
 ## Pruebas automatizadas
 
+### Integración RLS real (opt-in)
+
+`npm run test:rls` ejecuta ocho casos reales, separados de `npm test`, sin mocks ni frontend.
+Requiere un proyecto exclusivo de testing y tres cuentas previamente configuradas.
+Ver [configuración, controles de seguridad y resultados](docs/integracion/pruebas-rls.md).
+Sin configuración inequívoca se detiene antes de autenticar o escribir; no significa que RLS haya pasado.
+
 ```sh
 npm test                  # Vitest + suite existente de node:test, en ese orden
 npm run test:unit         # componentes y navegación con Vitest
@@ -140,7 +151,7 @@ npm run build
 - `vitest.config.js` usa Vue, jsdom y el alias `@`; solo descubre `tests/**/*.spec.js`. `node:test` conserva `tests/*.test.js`, por lo que ninguna suite se ejecuta con el runner incorrecto. No se carga el plugin de DevTools para las pruebas.
 - `tests/vitest.setup.js` reemplaza Supabase Auth y el transporte de Axios. Se conservan interceptores y serialización reales para comprobar JWT, apikey y payloads; todas las respuestas son explícitas y `fetch` real queda bloqueado. La configuración usa URL y clave públicas ficticias, nunca las credenciales del `.env`.
 - `tests/edicion.spec.js` cubre TEST 01–12: edición pendiente, ID de versión/estado pendiente, RPC de corrección, respuesta con nuevo ID y una sola tarjeta al volver a Mis recetas, precarga completa y orden, duplicados, inactivos nuevos/originales, bloqueo de publicadas, errores visibles, doble envío y guards reales con Pinia/Router. También verifica cancelación y error de precarga. Se montan los componentes reales con Vue Test Utils; no solo se comprueban llamadas a mocks.
-- Última ejecución: **71 pruebas Vitest + 71 pruebas node:test (142 en total), todas aprobadas**, sin omitidas. Las pruebas anteriores de categorías, ingredientes, catálogo, alta y moderación se mantienen.
+- Última ejecución: **72 pruebas Vitest + 78 pruebas node:test (150 en total), todas aprobadas**, sin omitidas. Por separado, **8 pruebas RLS reales aprobadas** con `npm run test:rls -- --single-project-test-only`, en el proyecto autorizado como exclusivo de testing, sin datos reales; ver el informe y las limitaciones de limpieza en la documentación de la suite.
 - Límites: el estado persistido y la creación/conservación de versiones son responsabilidad de las RPC. Los tests verifican payloads, respuestas simuladas y resultado en la interfaz; no demuestran el comportamiento SQL ni RLS reales. Sigue pendiente validar con un proyecto Supabase de prueba que editar una pendiente conserva su ID, reenviar crea otra versión y conserva la rechazada, y un usuario ajeno no puede escribir. No se realizan escrituras, registros de usuarios ni llamadas al Supabase principal.
 - `npm audit` informa cuatro avisos moderados en dependencias transitivas de desarrollo de Vue Test Utils (`js-beautify`, `editorconfig`, `glob`, `minimatch`). No se aplican cambios forzados ni actualizaciones de dependencias de producción para resolverlos dentro de esta tarea.
 

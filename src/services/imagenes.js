@@ -1,5 +1,6 @@
 import { getSupabase } from './supabase'
 import { api } from './api'
+import { exigirIdEnteroSeguro } from '@/utils/ids'
 
 export const bucketRecetas = 'recetas-imagenes'
 const formatos = { 'image/jpeg': ['jpg', 'jpeg'], 'image/png': ['png'], 'image/webp': ['webp'] }
@@ -28,9 +29,11 @@ export function obtenerVersionGuardada(resultado, versionPendiente = null) {
   if (id == null || !/^\d+$/.test(String(id))) {
     throw new Error('La RPC no devolvió version_id. El contenido ya se guardó: abrí su propuesta pendiente desde Mis recetas para adjuntar la imagen.')
   }
+  exigirIdEnteroSeguro(id, 'identificador de la versión')
   return id
 }
 
 export async function asignarImagen(versionId, ruta) {
+  exigirIdEnteroSeguro(versionId, 'identificador de la versión')
   await api.post('rpc/asignar_imagen_receta', { p_version_id: versionId, p_imagen_path: ruta })
 }

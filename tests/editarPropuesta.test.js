@@ -109,9 +109,20 @@ test('precarga propia y edición usan REST filtrado y RPC, nunca ID de receta ni
       const datos = { ...form, pasos: form.pasos.map((paso) => paso.texto) }
       const cantidad = peticiones.length
       await assert.rejects(() => editarPropuestaReceta(83, { ...datos, ingredientes: [] }))
+      await assert.rejects(() => editarPropuestaReceta(2 ** 53, datos), /entero seguro/)
       assert.equal(peticiones.length, cantidad)
       fallo = new Error('RPC rechazada')
       await assert.rejects(() => editarPropuestaReceta(83, datos), /RPC rechazada/)
+    })
+    await t.test('descarta la precarga si existe una versión posterior, como impone la RPC', async () => {
+      fallo = null
+      respuesta = [{ ...propuesta, numero: 1, receta: { id: 12, autor_id: 'autor-propio', receta_versiones: [{ numero: 2 }] } }]
+      assert.equal(await obtenerPropuestaPropia(83, 'autor-propio'), null)
+      respuesta = [{ ...propuesta, numero: 2, receta: { id: 12, autor_id: 'autor-propio', receta_versiones: [{ numero: 1 }, { numero: 2 }] } }]
+      assert.equal(await obtenerPropuestaPropia(83, 'autor-propio'), respuesta[0])
+      const config = peticiones.at(-1)
+      assert.match(config.params.select, /(^|,)numero(,|$)/)
+      assert.match(config.params.select, /receta_versiones\(numero\)/)
     })
     assert.ok(peticiones.every((config) => config.method === 'get' || config.url === 'rpc/editar_propuesta_receta'))
   } finally { await server.close() }

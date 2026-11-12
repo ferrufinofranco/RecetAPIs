@@ -1,5 +1,6 @@
 import { api } from './api'
 import { adaptarReceta } from '@/utils/recetas'
+import { exigirIdEnteroSeguro } from '@/utils/ids'
 
 const filtrosPendientes = {
   estado: 'eq.pendiente',
@@ -52,10 +53,12 @@ export async function obtenerPropuesta(versionId, signal) {
 }
 
 export async function aprobarReceta(versionId) {
+  exigirIdEnteroSeguro(versionId, 'identificador de la versión')
   await api.post('rpc/aprobar_receta', { p_version_id: versionId })
 }
 
 export async function rechazarReceta(versionId, motivo) {
+  exigirIdEnteroSeguro(versionId, 'identificador de la versión')
   await api.post('rpc/rechazar_receta', {
     p_version_id: versionId,
     p_motivo: motivo?.trim() || null,

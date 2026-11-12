@@ -8,6 +8,7 @@
     "test:unit": "vitest run",
     "test:watch": "vitest",
     "test:legacy": "node --test tests/*.test.js",
+    "test:rls": "node tools/test-rls.mjs",
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",

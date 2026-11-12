@@ -2,6 +2,7 @@ import { api } from './api'
 import { adaptarReceta } from '@/utils/recetas'
 import { prepararDatosReceta } from '@/utils/crearReceta'
 import { resumirRecetaPropia } from '@/utils/misRecetas'
+import { exigirIdEnteroSeguro } from '@/utils/ids'
 
 const select = [
   'id,receta_id,numero,titulo,descripcion,tiempo_minutos,porciones,dificultad,imagen_path',
@@ -87,8 +88,8 @@ export async function obtenerPropuestaPropia(versionId, autorId, signal) {
   const { data } = await api.get('receta_versiones', {
     params: {
       select: [
-        'id,receta_id,estado,motivo_rechazo,titulo,descripcion,porciones,tiempo_minutos,dificultad,imagen_path',
-        'receta:recetas!inner(id,autor_id)',
+        'id,receta_id,numero,estado,motivo_rechazo,titulo,descripcion,porciones,tiempo_minutos,dificultad,imagen_path',
+        'receta:recetas!inner(id,autor_id,receta_versiones(numero))',
         'receta_categorias(categoria_id)',
         'receta_ingredientes(ingrediente_id,cantidad,unidad,ingredientes(nombre,activo))',
         'receta_pasos(orden,descripcion)',
@@ -103,10 +104,15 @@ export async function obtenerPropuestaPropia(versionId, autorId, signal) {
   })
   const propuesta = data[0]
   if (!propuesta || propuesta.receta?.autor_id !== autorId || !['pendiente', 'rechazada'].includes(propuesta.estado)) return null
+  // La RPC editar_propuesta_receta rechaza una propuesta si ya existe una
+  // versión posterior (12:130-137). Descartarla en la precarga evita ofrecer
+  // una edición que el backend va a rechazar; la RPC lo vuelve a imponer.
+  if ((propuesta.receta?.receta_versiones ?? []).some((version) => version.numero > propuesta.numero)) return null
   return propuesta
 }
 
 export async function editarPropuestaReceta(versionId, formulario) {
+  exigirIdEnteroSeguro(versionId, 'identificador de la versión')
   const { data } = await api.post('rpc/editar_propuesta_receta', {
     p_version_id: versionId,
     p_datos: prepararDatosReceta(formulario),
@@ -147,6 +153,7 @@ export async function obtenerEdicionPublicada(recetaId, autorId, signal, { admin
 }
 
 export async function proponerEdicionReceta(recetaId, formulario) {
+  exigirIdEnteroSeguro(recetaId, 'identificador de la receta')
   const { data } = await api.post('rpc/proponer_edicion_receta', {
     p_receta_id: recetaId,
     p_datos: prepararDatosReceta(formulario),
@@ -155,10 +162,12 @@ export async function proponerEdicionReceta(recetaId, formulario) {
 }
 
 export async function eliminarReceta(recetaId) {
+  exigirIdEnteroSeguro(recetaId, 'identificador de la receta')
   await api.post('rpc/eliminar_receta', { p_receta_id: recetaId })
 }
 
 export async function adminEditarReceta(recetaId, formulario, imagen = {}) {
+  exigirIdEnteroSeguro(recetaId, 'identificador de la receta')
   const datos = prepararDatosReceta(formulario)
   if (Object.hasOwn(imagen, 'imagen_path')) datos.imagen_path = imagen.imagen_path
   const { data } = await api.post('rpc/admin_editar_receta', { p_receta_id: recetaId, p_datos: datos })

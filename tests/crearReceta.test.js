@@ -38,6 +38,45 @@ test('rechaza datos incompletos, cantidades inválidas y duplicados', () => {
   ]) assert.throws(() => prepararDatosReceta({ ...formulario(), ...cambio }))
 })
 
+test('porciones y tiempo respetan el rango integer de PostgreSQL', () => {
+  const limite = prepararDatosReceta({ ...formulario(), porciones: 2147483647, tiempo_minutos: 2147483647 })
+  assert.equal(limite.porciones, 2147483647)
+  assert.equal(limite.tiempo_minutos, 2147483647)
+  for (const cambio of [{ porciones: 2147483648 }, { tiempo_minutos: 2147483648 }]) {
+    assert.throws(() => prepararDatosReceta({ ...formulario(), ...cambio }), /número entero positivo/)
+  }
+})
+
+test('cantidades dentro de numeric(12,3): rango máximo y hasta tres decimales', () => {
+  const con = (cantidad) => prepararDatosReceta({ ...formulario(), ingredientes: [{ ingrediente_id: 25, cantidad, unidad: 'g' }] })
+  assert.deepEqual(con(999999999.999).ingredientes, [{ ingrediente_id: 25, cantidad: 999999999.999, unidad: 'g' }])
+  assert.deepEqual(con(0.001).ingredientes[0].cantidad, 0.001)
+  assert.deepEqual(con('1000.123').ingredientes[0].cantidad, 1000.123)
+  // Fuera de rango, más de tres decimales o valores que SQL redondearía a 0.000.
+  for (const cantidad of [1000000000, 999999999.9995, 1.2345, 0.0001, 1e-7]) {
+    assert.throws(() => con(cantidad), /tres decimales/)
+  }
+})
+
+test('rechaza identificadores bigint que no son enteros seguros', () => {
+  assert.throws(() => prepararDatosReceta({ ...formulario(), categorias: [7, 2 ** 53] }), /identificador de la categoría/)
+  assert.throws(() => prepararDatosReceta({ ...formulario(), categorias: [7, NaN] }), /identificador de la categoría/)
+  assert.throws(() => prepararDatosReceta({
+    ...formulario(),
+    ingredientes: [{ ingrediente_id: 2 ** 53, cantidad: 1, unidad: 'g' }],
+  }), /identificador del ingrediente/)
+  // Los IDs seguros pasan sin conversión.
+  assert.deepEqual(prepararDatosReceta(formulario()).categorias, [7, 9])
+})
+
+test('un error de versión posterior se informa sin culpar a los datos', () => {
+  const error = Object.assign(new Error('Existe una version posterior de esta receta'), {
+    response: { status: 400, data: { code: '22023', message: 'Existe una version posterior de esta receta' } },
+  })
+  assert.match(mensajeErrorCrearReceta(error, 'guardar la propuesta'), /versión posterior/)
+  assert.doesNotMatch(mensajeErrorCrearReceta(new Error('sin respuesta'), 'guardar la propuesta'), /versión posterior/)
+})
+
 test('la ruta de creación requiere sesión, sin exigir rol admin', async () => {
   const auth = { inicializar: async () => {}, autenticado: false }
   const ruta = { meta: { requiereAuth: true } }

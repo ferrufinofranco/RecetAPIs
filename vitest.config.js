@@ -12,6 +12,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['tests/**/*.spec.js'],
+    exclude: ['tests/integration/**'],
     setupFiles: ['tests/vitest.setup.js'],
     clearMocks: true,
   },
