@@ -1,5 +1,6 @@
 import { api } from './api'
 import { adaptarReceta } from '@/utils/recetas'
+import { prepararDatosReceta } from '@/utils/crearReceta'
 
 const select = [
   'id,receta_id,numero,titulo,descripcion,tiempo_minutos,porciones,dificultad,imagen_path',
@@ -45,4 +46,11 @@ export async function obtenerReceta(id, signal) {
     signal,
   })
   return data.length ? adaptarReceta(data[0], import.meta.env.VITE_SUPABASE_URL) : null
+}
+
+export async function crearReceta(formulario) {
+  const { data } = await api.post('rpc/crear_receta', {
+    p_datos: prepararDatosReceta(formulario),
+  })
+  return data
 }

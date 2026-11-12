@@ -24,6 +24,10 @@ const router = createRouter({
       component: () => import('@/views/AdminView.vue'),
     },
     {
+      path: '/recetas/crear', name: 'crear-receta', meta: { requiereAuth: true },
+      component: () => import('@/views/CrearRecetaView.vue'),
+    },
+    {
       path: '/recetas/:id',
       name: 'receta',
       component: () => import('@/views/RecetaDetalleView.vue'),

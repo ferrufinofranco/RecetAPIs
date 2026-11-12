@@ -37,6 +37,7 @@ async function salir() {
         <RouterLink to="/">Catálogo</RouterLink>
         <template v-if="auth.inicializado">
           <template v-if="auth.autenticado">
+            <RouterLink :to="{ name: 'crear-receta' }">Crear receta</RouterLink>
             <RouterLink v-if="auth.esAdmin" :to="{ name: 'admin' }">Administración</RouterLink>
             <span class="dato">{{ auth.perfil?.nombre || auth.user.email }}</span>
             <button type="button" :disabled="cerrando" @click="salir">
