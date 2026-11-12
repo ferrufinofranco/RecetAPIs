@@ -145,7 +145,7 @@ onMounted(cargarOpciones)
 </script>
 
 <template>
-  <section class="crear-receta" aria-labelledby="titulo-crear">
+  <section class="crear-receta" :class="{ 'crear-receta--amplia': !administrativa }" aria-labelledby="titulo-crear">
     <h1 id="titulo-crear">{{ administrativa ? 'Edición administrativa' : publicada ? 'Editar receta publicada' : rechazado ? 'Corregir y reenviar' : editando ? 'Editar propuesta' : 'Crear receta' }}</h1>
     <p v-if="publicada && !administrativa" class="mensaje-info">Se creará una nueva propuesta pendiente. La versión aprobada y su imagen seguirán visibles sin cambios hasta la aprobación.</p>
     <p>{{ administrativa ? 'Los cambios se publicarán directamente como una nueva versión, conservando el historial.' : editando ? 'Guardá tus cambios para revisión. La propuesta quedará pendiente de aprobación.' : 'Compartí tu receta. Quedará pendiente de aprobación antes de aparecer en el catálogo.' }}</p>
@@ -169,57 +169,71 @@ onMounted(cargarOpciones)
       <form :aria-busy="guardando" @submit.prevent="guardar">
         <fieldset :disabled="guardando || contenidoGuardado || cargando || !!errorCarga || !auth.autenticado || auth.user?.id !== autorId || (!ingredientes.some(item => item.activo) && !ingredientesOriginales.length) || !categorias.length">
           <legend class="sr-only">Datos de la receta</legend>
-          <div class="campo">
-            <label for="titulo-receta">Título *</label>
-            <input id="titulo-receta" v-model="formulario.titulo" required>
+          <div class="receta-columnas">
+            <div class="receta-columna receta-columna--general">
+              <section aria-labelledby="datos-generales">
+                <h2 id="datos-generales">Información general</h2>
+                <div class="informacion-grid">
+                  <div class="campo">
+                    <label for="titulo-receta">Título *</label>
+                    <input id="titulo-receta" v-model="formulario.titulo" required>
+                  </div>
+                  <div class="campo">
+                    <label for="descripcion-receta">Descripción (opcional)</label>
+                    <textarea id="descripcion-receta" v-model="formulario.descripcion" rows="2" />
+                  </div>
+                </div>
+                <div class="datos-grid">
+                  <div class="campo">
+                    <label for="porciones-receta">Porciones *</label>
+                    <input id="porciones-receta" v-model="formulario.porciones" type="number" min="1" step="1" required>
+                  </div>
+                  <div class="campo">
+                    <label for="tiempo-receta">Duración (min, opcional)</label>
+                    <input id="tiempo-receta" v-model="formulario.tiempo_minutos" type="number" min="1" step="1">
+                  </div>
+                  <div class="campo">
+                    <label for="dificultad-receta">Dificultad (opcional)</label>
+                    <select id="dificultad-receta" v-model="formulario.dificultad">
+                      <option value="">Sin especificar</option>
+                      <option value="facil">Fácil</option>
+                      <option value="media">Media</option>
+                      <option value="dificil">Difícil</option>
+                    </select>
+                  </div>
+                </div>
+              </section>
+              <section aria-labelledby="categorias-receta">
+                <h2 id="categorias-receta">Categorías</h2>
+                <p>Seleccioná al menos una categoría.</p>
+                <div class="categorias-seleccion">
+                  <label v-for="categoria in categorias" :key="categoria.id">
+                    <input v-model="formulario.categorias" type="checkbox" :value="categoria.id">
+                    <span>{{ categoria.nombre }}</span>
+                  </label>
+                </div>
+              </section>
+              <ImagenRecetaEditor v-if="!administrativa" v-model:archivo="archivo" v-model:quitar="quitarImagen" :ruta-inicial="propuesta?.imagen_path || ''" />
+            </div>
+            <div class="receta-columna receta-columna--preparacion">
+              <IngredientesEditor v-model="formulario.ingredientes" :disponibles="ingredientes" editar-cantidades />
+              <PasosEditor v-model="formulario.pasos" />
+            </div>
           </div>
-          <IngredientesEditor v-model="formulario.ingredientes" :disponibles="ingredientes" :editar-cantidades="editando" />
-          <section aria-labelledby="datos-generales">
-            <h2 id="datos-generales">Datos generales</h2>
-            <label for="descripcion-receta">Descripción (opcional)</label>
-            <textarea id="descripcion-receta" v-model="formulario.descripcion" rows="3" />
-            <div class="filtros">
-              <div class="campo">
-                <label for="porciones-receta">Porciones *</label>
-                <input id="porciones-receta" v-model="formulario.porciones" type="number" min="1" step="1" required>
-              </div>
-              <div class="campo">
-                <label for="tiempo-receta">Tiempo en minutos (opcional)</label>
-                <input id="tiempo-receta" v-model="formulario.tiempo_minutos" type="number" min="1" step="1">
-              </div>
-              <div class="campo">
-                <label for="dificultad-receta">Dificultad (opcional)</label>
-                <select id="dificultad-receta" v-model="formulario.dificultad">
-                  <option value="">Sin especificar</option>
-                  <option value="facil">Fácil</option>
-                  <option value="media">Media</option>
-                  <option value="dificil">Difícil</option>
-                </select>
-              </div>
-            </div>
-          </section>
-          <section aria-labelledby="categorias-receta">
-            <h2 id="categorias-receta">Categorías</h2>
-            <p>Seleccioná al menos una categoría.</p>
-            <div class="categorias-seleccion">
-              <label v-for="categoria in categorias" :key="categoria.id">
-                <input v-model="formulario.categorias" type="checkbox" :value="categoria.id">
-                {{ categoria.nombre }}
-              </label>
-            </div>
-          </section>
-          <PasosEditor v-model="formulario.pasos" />
-          <ImagenRecetaEditor v-model:archivo="archivo" v-model:quitar="quitarImagen" :ruta-inicial="propuesta?.imagen_path || ''" />
-          <button type="submit">{{ guardando ? 'Guardando…' : administrativa ? 'Publicar cambios' : publicada ? 'Proponer cambios para aprobación' : rechazado ? 'Reenviar para aprobación' : editando ? 'Guardar cambios' : 'Enviar receta para aprobación' }}</button>
+          <ImagenRecetaEditor v-if="administrativa" v-model:archivo="archivo" v-model:quitar="quitarImagen" :ruta-inicial="propuesta?.imagen_path || ''" />
+          <div class="guardar-receta">
+            <button type="submit">{{ guardando ? 'Guardando…' : administrativa ? 'Publicar cambios' : publicada ? 'Proponer cambios para aprobación' : rechazado ? 'Reenviar para aprobación' : editando ? 'Guardar cambios' : 'Enviar receta para aprobación' }}</button>
+          </div>
         </fieldset>
         <p v-if="error" class="mensaje-error" role="alert">{{ error }}</p>
       </form>
-      <div v-if="errorImagen" class="mensaje-error" role="alert">
+      <div v-if="errorImagen" class="mensaje-error" role="alert" :aria-busy="guardando">
         <p>{{ contenidoGuardado ? 'El contenido ya se guardó. No vuelvas a enviarlo.' : 'El contenido todavía no se guardó.' }} {{ errorImagen }}</p>
         <button type="button" :disabled="guardando" @click="reintentarImagen">Reintentar imagen</button>
         <button type="button" :disabled="guardando" @click="continuarSinImagen">Continuar sin cambiar la imagen</button>
       </div>
       <p v-if="guardando && contenidoGuardado" role="status">Guardando imagen…</p>
+      <p v-else-if="guardando" role="status">Guardando receta…</p>
       <RouterLink v-if="editando && !guardando && !contenidoGuardado" :to="{ name: administrativa ? 'admin' : 'mis-recetas' }">Cancelar sin guardar</RouterLink>
     </template>
   </section>
@@ -228,18 +242,53 @@ onMounted(cargarOpciones)
 <style>
 .crear-receta { max-width: 850px; margin-inline: auto; }
 .crear-receta fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-.crear-receta section { margin-block: 2rem; padding-top: 1.5rem; border-top: 1px solid #e1e6dc; }
-.crear-receta textarea { display: block; width: 100%; resize: vertical; font: inherit; color: inherit; background: white; border: 1px solid #b9c5b7; border-radius: 10px; padding: .75rem 1rem; margin-block: .4rem 1rem; }
-.crear-receta .lista-editor { list-style: none; padding: 0; }
-.crear-receta .lista-editor li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 0; border-bottom: 1px solid #e1e6dc; }
+.crear-receta section { margin-block: .85rem; padding-top: .85rem; border-top: 1px solid #e1e6dc; }
+.crear-receta h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); margin-bottom: .75rem; }
+.crear-receta h2 { margin-bottom: .5rem; }
+.crear-receta section p { margin-bottom: .5rem; }
+.crear-receta input, .crear-receta select, .crear-receta button { padding: .45rem .65rem; min-height: 44px; min-width: 0; }
+.crear-receta textarea { display: block; width: 100%; resize: vertical; font: inherit; color: inherit; background: white; border: 1px solid #b9c5b7; border-radius: 10px; padding: .5rem .65rem; margin: .25rem 0 .65rem; }
+.crear-receta .campo { min-width: 0; margin-bottom: .65rem; }
+.crear-receta .campo label { margin-bottom: .25rem; }
+.crear-receta .informacion-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: .75rem; align-items: start; }
+.crear-receta .informacion-grid textarea { margin-bottom: 0; }
+.crear-receta .datos-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.crear-receta .guardar-receta { padding-top: .75rem; border-top: 1px solid #e1e6dc; }
+.crear-receta .lista-editor { list-style: none; padding: 0; margin-block: .5rem 0; }
+.crear-receta .lista-editor li { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .5rem 0; border-bottom: 1px solid #e1e6dc; }
 .crear-receta .lista-editor span { overflow-wrap: anywhere; min-width: 0; }
 .crear-receta .acciones-editor { display: flex; gap: .5rem; flex-wrap: wrap; }
-.crear-receta .pasos-editor { padding-left: 1.5rem; }
-.crear-receta .pasos-editor li { margin-block: 1.5rem; }
-.crear-receta .categorias-seleccion { display: flex; gap: 1rem; flex-wrap: wrap; }
-.crear-receta .categorias-seleccion label { display: flex; align-items: center; gap: .5rem; }
+.crear-receta .pasos-editor { list-style: none; padding: 0; margin-block: .5rem 0; }
+.crear-receta .pasos-editor li { margin-block: .5rem; }
+.crear-receta .categorias-seleccion { display: flex; gap: .35rem .75rem; flex-wrap: wrap; }
+.crear-receta .categorias-seleccion label { display: flex; align-items: center; gap: .5rem; min-height: 44px; }
 .crear-receta input[type="checkbox"] { width: auto; }
 .crear-receta .mensaje-error { margin-top: 1rem; }
 .crear-receta .motivo-rechazo { white-space: pre-wrap; }
 .crear-receta .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); }
+/* Solo el formulario público: las vistas y la edición administrativa conservan su ancho. */
+.crear-receta--amplia { max-width: 1280px; }
+.crear-receta--amplia .receta-columnas { display: grid; grid-template-columns: minmax(0, 1fr); gap: .85rem; margin-block: .85rem; }
+.crear-receta--amplia .receta-columna { min-width: 0; display: grid; align-content: start; gap: .85rem; }
+.crear-receta--amplia .receta-columna > section { min-width: 0; margin-block: 0; }
+.crear-receta--amplia .datos-grid { align-items: end; }
+.crear-receta--amplia .categorias-seleccion { gap: .4rem; }
+.crear-receta--amplia .categorias-seleccion label { padding: .25rem .65rem; border: 1px solid #b9c5b7; border-radius: 20px; background: white; cursor: pointer; max-width: 100%; }
+.crear-receta--amplia .categorias-seleccion label:has(:checked) { background: #edf2e7; border-color: #365f40; color: #365f40; }
+.crear-receta--amplia .categorias-seleccion label:has(:focus-visible) { outline: 3px solid #b56825; outline-offset: 3px; }
+.crear-receta--amplia .categorias-seleccion input { min-height: 0; margin: 0; flex-shrink: 0; accent-color: #365f40; }
+.crear-receta--amplia .categorias-seleccion input:focus-visible { outline: none; }
+.crear-receta--amplia .categorias-seleccion span { overflow-wrap: anywhere; min-width: 0; }
+.crear-receta--amplia .guardar-receta { display: flex; justify-content: flex-end; padding-block: 1rem; }
+@media (min-width: 1100px) {
+  main.contenedor.contenido:has(.crear-receta--amplia) { width: min(1280px, calc(100% - 3rem)); }
+  .crear-receta--amplia .receta-columnas { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 1.5rem; }
+  .crear-receta--amplia .informacion-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
+@media (max-width: 600px) {
+  .crear-receta .informacion-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .crear-receta .datos-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .crear-receta .datos-grid .campo:last-child { grid-column: 1 / -1; }
+  .crear-receta .guardar-receta button { width: 100%; }
+}
 </style>

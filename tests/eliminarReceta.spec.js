@@ -39,6 +39,7 @@ async function abrir(path = '/mis-recetas') {
   await router.isReady()
   const wrapper = mount({ template: '<RouterView />' }, { global: { plugins: [pinia, router] } })
   await flushPromises()
+  if (path === '/admin') await vi.waitFor(() => expect(wrapper.find('.lista-propuestas').exists()).toBe(true))
   return { wrapper, router, auth }
 }
 
@@ -148,6 +149,9 @@ describe('Baja lógica de recetas propias y administrativa', () => {
     rol = 'admin'
     registros.push(receta(16, 'descartada', 'tercer-autor'))
     const { wrapper } = await abrir('/admin')
+    await wrapper.get('#admin-recetas-tab-gestion').trigger('click')
+    await flushPromises()
+    await vi.waitFor(() => expect(wrapper.find('.gestion-lista').exists()).toBe(true))
     const gestion = wrapper.get('.gestion-recetas')
     expect(gestion.text()).toContain('otro-autor')
     expect(gestion.text()).toContain('Descartada')
@@ -211,7 +215,11 @@ describe('Baja lógica de recetas propias y administrativa', () => {
     await pendientes.get('[aria-label="Revisar Receta 12, versión 1"]').trigger('click')
     await flushPromises()
     expect(pendientes.text()).toContain('Aprobar receta')
+    await wrapper.get('#admin-recetas-tab-gestion').trigger('click')
+    await vi.waitFor(() => expect(wrapper.find('.gestion-lista').exists()).toBe(true))
     await botonBaja(wrapper.get('.gestion-recetas'), 12).trigger('click')
+    await flushPromises()
+    await wrapper.get('#admin-recetas-tab-pendientes').trigger('click')
     await flushPromises()
     expect(wrapper.get('.moderacion').text()).not.toContain('Aprobar receta')
     expect(wrapper.get('.moderacion').find('[aria-label="Revisar Receta 12, versión 1"]').exists()).toBe(false)

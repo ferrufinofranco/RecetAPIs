@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { unidadesReceta } from '@/utils/crearReceta'
+import SolicitarIngredienteDialogo from '@/components/ingredientes/SolicitarIngredienteDialogo.vue'
 
 const props = defineProps({
   modelValue: { type: Array, required: true },
@@ -45,9 +46,8 @@ function modificar(id, campo, valor) {
 <template>
   <section aria-labelledby="ingredientes-editor">
     <h2 id="ingredientes-editor">Ingredientes</h2>
-    <RouterLink :to="{ name: 'mis-solicitudes' }">¿No encontrás un ingrediente? Solicitá uno nuevo</RouterLink>
     <p>{{ editarCantidades ? 'Podés conservar los ingredientes inactivos ya presentes. Solo se agregan ingredientes activos.' : 'Agregá al menos un ingrediente activo.' }}</p>
-    <div class="filtros">
+    <div class="ingrediente-nuevo">
       <div class="campo">
         <label for="ingrediente-elegido">Ingrediente</label>
         <select id="ingrediente-elegido" v-model="ingredienteId">
@@ -65,20 +65,25 @@ function modificar(id, campo, valor) {
           <option v-for="item in unidadesReceta" :key="item" :value="item">{{ item }}</option>
         </select>
       </div>
+      <button type="button" class="agregar-ingrediente" @click="agregar">Agregar ingrediente</button>
     </div>
-    <button type="button" @click="agregar">Agregar ingrediente</button>
+    <SolicitarIngredienteDialogo />
     <p v-if="error" class="mensaje-error" role="alert">{{ error }}</p>
     <ul class="lista-editor">
       <li v-for="item in modelValue" :key="item.ingrediente_id">
         <div v-if="editarCantidades" class="ingrediente-editable">
           <strong>{{ item.nombre }}{{ item.activo === false ? ' (inactivo)' : '' }}</strong>
-          <label :for="`cantidad-${item.ingrediente_id}`">Cantidad</label>
-          <input :id="`cantidad-${item.ingrediente_id}`" :value="item.cantidad" type="number" min="0" step="any" required
-            @input="modificar(item.ingrediente_id, 'cantidad', $event.target.value)">
-          <label :for="`unidad-${item.ingrediente_id}`">Unidad</label>
-          <select :id="`unidad-${item.ingrediente_id}`" :value="item.unidad" @change="modificar(item.ingrediente_id, 'unidad', $event.target.value)">
-            <option v-for="opcion in unidadesReceta" :key="opcion" :value="opcion">{{ opcion }}</option>
-          </select>
+          <div class="cantidad-fila">
+            <label :for="`cantidad-${item.ingrediente_id}`">Cantidad</label>
+            <input :id="`cantidad-${item.ingrediente_id}`" :value="item.cantidad" type="number" min="0" step="any" required
+              @input="modificar(item.ingrediente_id, 'cantidad', $event.target.value)">
+          </div>
+          <div class="unidad-fila">
+            <label :for="`unidad-${item.ingrediente_id}`">Unidad</label>
+            <select :id="`unidad-${item.ingrediente_id}`" :value="item.unidad" @change="modificar(item.ingrediente_id, 'unidad', $event.target.value)">
+              <option v-for="opcion in unidadesReceta" :key="opcion" :value="opcion">{{ opcion }}</option>
+            </select>
+          </div>
         </div>
         <span v-else>{{ item.nombre }} — {{ item.cantidad }} {{ item.unidad }}</span>
         <button type="button" class="boton-secundario" :aria-label="`Quitar ${item.nombre}`"
@@ -89,5 +94,19 @@ function modificar(id, campo, valor) {
 </template>
 
 <style scoped>
-.ingrediente-editable { display: grid; gap: .4rem; min-width: 0; flex: 1; }
+.ingrediente-nuevo { display: grid; grid-template-columns: minmax(0, 2fr) minmax(80px, 1fr) minmax(80px, 1fr) auto; gap: .5rem; align-items: end; }
+.ingrediente-nuevo .campo { margin: 0; }
+.agregar-ingrediente { max-width: 8rem; line-height: 1.25; }
+.ingrediente-editable { display: grid; grid-template-columns: minmax(0, 2fr) minmax(80px, 1fr) minmax(80px, 1fr); align-items: center; gap: .5rem; min-width: 0; flex: 1; }
+.ingrediente-editable strong { overflow-wrap: anywhere; }
+.ingrediente-editable label { display: block; font-size: .8rem; }
+@media (max-width: 700px) {
+  .ingrediente-nuevo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ingrediente-nuevo .campo:first-child { grid-column: 1 / -1; }
+  .ingrediente-nuevo button { grid-column: 1 / -1; justify-self: start; max-width: none; }
+}
+@media (max-width: 480px) {
+  .ingrediente-editable { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ingrediente-editable strong { grid-column: 1 / -1; }
+}
 </style>

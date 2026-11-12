@@ -157,6 +157,37 @@ it('20: genera objetos únicos y nunca permite sobrescritura', async () => {
   for (const llamada of upload.mock.calls) expect(llamada[2]).toEqual({ upsert: false, contentType: 'image/webp' })
 })
 
+it('anuncia la carga y el reintento de imagen e impide reenviar la receta', async () => {
+  let completarSubida, completarReintento
+  upload.mockImplementationOnce(() => new Promise((resolve) => { completarSubida = resolve }))
+    .mockImplementationOnce(() => new Promise((resolve) => { completarReintento = resolve }))
+  const wrapper = await montar()
+  await elegir(wrapper)
+  await wrapper.get('form').trigger('submit')
+  await flushPromises()
+  expect(wrapper.get('form').attributes('aria-busy')).toBe('true')
+  expect(wrapper.get('fieldset').element.disabled).toBe(true)
+  expect(wrapper.get('[role="status"]').text()).toBe('Guardando imagen…')
+  completarSubida({ error: { message: 'Error temporal de imagen' } })
+  await flushPromises()
+  expect(wrapper.get('form').attributes('aria-busy')).toBe('false')
+  expect(wrapper.get('[role="alert"]').text()).toContain('El contenido ya se guardó')
+  await wrapper.findAll('button').find((item) => item.text() === 'Reintentar imagen').trigger('click')
+  await flushPromises()
+  expect(wrapper.get('[role="status"]').text()).toBe('Guardando imagen…')
+  expect(wrapper.get('fieldset').element.disabled).toBe(true)
+  for (const texto of ['Reintentar imagen', 'Continuar sin cambiar la imagen']) {
+    expect(wrapper.findAll('button').some((item) => item.text() === texto)).toBe(false)
+  }
+  await wrapper.get('form').trigger('submit')
+  expect(posts().filter((config) => config.url === 'rpc/editar_propuesta_receta')).toHaveLength(1)
+  completarReintento({ data: {}, error: null })
+  await flushPromises()
+  expect(wrapper.find('form').exists()).toBe(false)
+  expect(wrapper.text()).toContain('Cambios guardados correctamente')
+  expect(upload).toHaveBeenCalledTimes(2)
+})
+
 it('quitar la imagen envía null; una pendiente con respuesta sin ID utiliza solo su ID conocido', async () => {
   resultado = null
   const wrapper = await montar()

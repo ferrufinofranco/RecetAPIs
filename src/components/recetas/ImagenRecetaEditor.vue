@@ -37,17 +37,30 @@ function limpiar(quitar) {
 <template>
   <section aria-labelledby="imagen-receta">
     <h2 id="imagen-receta">Imagen (opcional)</h2>
-    <p>Una imagen JPG, PNG o WebP de hasta 5 MB. El archivo será público por URL, incluso mientras la receta esté pendiente.</p>
-    <label for="archivo-receta">Seleccionar imagen</label>
-    <input id="archivo-receta" ref="entrada" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" @change="seleccionar">
-    <RecetaImagen class="preview-imagen" :src="vista" alt="Vista previa de la imagen de la receta" />
-    <button type="button" class="boton-secundario" @click="limpiar(true)">Quitar imagen</button>
-    <button v-if="rutaInicial && (archivo || quitar)" type="button" class="boton-secundario" @click="limpiar(false)">Mantener imagen actual</button>
-    <p v-if="error" role="alert" class="mensaje-error">{{ error }}</p>
+    <p id="ayuda-imagen-receta">Una imagen JPG, PNG o WebP de hasta 5 MB. El archivo será público por URL, incluso mientras la receta esté pendiente.</p>
+    <div class="imagen-editor-grid">
+      <div>
+        <label for="archivo-receta">Seleccionar imagen</label>
+        <input id="archivo-receta" ref="entrada" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+          :aria-invalid="!!error" :aria-describedby="error ? 'ayuda-imagen-receta error-imagen-receta' : 'ayuda-imagen-receta'" @change="seleccionar">
+        <div class="acciones-imagen">
+          <button type="button" class="boton-secundario" @click="limpiar(true)">Quitar imagen</button>
+          <button v-if="rutaInicial && (archivo || quitar)" type="button" class="boton-secundario" @click="limpiar(false)">Mantener imagen actual</button>
+        </div>
+      </div>
+      <RecetaImagen class="preview-imagen" :src="vista" alt="Vista previa de la imagen de la receta" />
+    </div>
+    <p v-if="error" id="error-imagen-receta" role="alert" class="mensaje-error">{{ error }}</p>
   </section>
 </template>
 
 <style scoped>
-.preview-imagen { display: block; width: min(100%, 320px); aspect-ratio: 4 / 3; object-fit: cover; margin-block: 1rem; border-radius: 12px; }
-button { margin: .25rem; }
+.imagen-editor-grid { display: grid; grid-template-columns: minmax(0, 1fr) 128px; align-items: start; gap: .75rem; }
+.preview-imagen { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; }
+input { margin-block: .25rem .5rem; max-width: 100%; }
+.acciones-imagen { display: flex; flex-wrap: wrap; gap: .5rem; }
+@media (max-width: 480px) {
+  .imagen-editor-grid { grid-template-columns: minmax(0, 1fr); }
+  .preview-imagen { max-width: 128px; }
+}
 </style>

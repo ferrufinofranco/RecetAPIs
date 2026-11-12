@@ -1,5 +1,6 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
+import { useListadoAdministracion } from '@/composables/useListadoAdministracion'
 import { useAuthStore } from '@/stores/auth'
 import { obtenerRecetasAdministracion } from '@/services/recetas'
 import { useEliminarReceta } from '@/composables/useEliminarReceta'
@@ -38,7 +39,7 @@ function solicitarBaja(receta) {
   })
 }
 
-onMounted(cargar)
+useListadoAdministracion(cargar, () => cargando.value || eliminandoId.value !== null)
 onBeforeUnmount(() => controller?.abort())
 </script>
 

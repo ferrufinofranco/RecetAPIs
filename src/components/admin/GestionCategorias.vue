@@ -1,5 +1,6 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
+import { useListadoAdministracion } from '@/composables/useListadoAdministracion'
 import { crearCategoria, eliminarCategoria, obtenerCategorias, renombrarCategoria } from '@/services/categorias'
 import { esCategoriaGeneral, mensajeErrorCategoria } from '@/utils/categorias'
 import CategoriaFormulario from './CategoriaFormulario.vue'
@@ -88,7 +89,7 @@ async function eliminar(categoria) {
   }
 }
 
-onMounted(cargarCategorias)
+useListadoAdministracion(cargarCategorias, () => cargando.value || guardando.value)
 </script>
 
 <template>

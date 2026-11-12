@@ -1,5 +1,6 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
+import { useListadoAdministracion } from '@/composables/useListadoAdministracion'
 import { useAuthStore } from '@/stores/auth'
 import { aprobarReceta, rechazarReceta, obtenerPropuesta, obtenerPropuestasPendientes, mensajeErrorModeracion } from '@/services/moderacion'
 import PropuestaDetalle from './PropuestaDetalle.vue'
@@ -33,16 +34,19 @@ function cerrarRevision() {
   revisando.value = false
 }
 
-async function cargarListado() {
+async function cargarListado(conservarRevision = false) {
   listadoController?.abort()
   const controller = new AbortController()
   listadoController = controller
-  cerrarRevision()
+  if (!conservarRevision) cerrarRevision()
   cargando.value = true
   errorListado.value = ''
   try {
     const datos = await obtenerPropuestasPendientes(controller.signal)
-    if (!controller.signal.aborted) propuestas.value = datos
+    if (!controller.signal.aborted) {
+      propuestas.value = datos
+      if (conservarRevision && seleccionadaId.value !== null && !datos.some((item) => item.id === seleccionadaId.value)) cerrarRevision()
+    }
   } catch {
     if (!controller.signal.aborted) errorListado.value = 'No pudimos cargar las propuestas pendientes. Reintentá la lectura.'
   } finally {
@@ -101,7 +105,7 @@ async function decidir(accion) {
   }
 }
 
-onMounted(cargarListado)
+useListadoAdministracion(() => cargarListado(true), () => cargando.value || procesando.value || revisando.value)
 onBeforeUnmount(() => {
   listadoController?.abort()
   detalleController?.abort()

@@ -23,6 +23,10 @@ import { api } from '@/services/api'
 export const usuarioPrueba = { id: 'uuid-propio', email: 'ana@example.com' }
 
 enableAutoUnmount(afterEach)
+// jsdom no implementa el comportamiento modal del navegador. Se simula
+// únicamente apertura/cierre; el foco y los eventos se prueban en el DOM.
+HTMLDialogElement.prototype.showModal = function () { this.open = true }
+HTMLDialogElement.prototype.close = function () { this.open = false }
 beforeEach(() => {
   supabaseMock.auth.getSession.mockResolvedValue({ data: { session: { access_token: 'jwt-prueba', user: usuarioPrueba } }, error: null })
   supabaseMock.auth.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } })

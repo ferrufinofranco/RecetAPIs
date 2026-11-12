@@ -1,5 +1,6 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
+import { useListadoAdministracion } from '@/composables/useListadoAdministracion'
 import { crearIngrediente, desactivarIngrediente, obtenerIngredientes, renombrarIngrediente } from '@/services/ingredientes'
 import { mensajeErrorIngrediente } from '@/utils/ingredientes'
 import IngredienteFormulario from './IngredienteFormulario.vue'
@@ -87,7 +88,7 @@ async function desactivar(ingrediente) {
   }
 }
 
-onMounted(cargarIngredientes)
+useListadoAdministracion(cargarIngredientes, () => cargando.value || guardando.value)
 </script>
 
 <template>

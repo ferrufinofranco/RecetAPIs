@@ -6,6 +6,7 @@ import appRouter from '@/router'
 import { crearAuthGuard } from '@/router/authGuard'
 import { useAuthStore } from '@/stores/auth'
 import SolicitudesIngredientes from '@/components/ingredientes/SolicitudesIngredientes.vue'
+import SolicitarIngredienteDialogo from '@/components/ingredientes/SolicitarIngredienteDialogo.vue'
 import { api } from '@/services/api'
 import { getSupabaseMock, usuarioPrueba } from './vitest.setup'
 
@@ -28,15 +29,19 @@ beforeEach(() => {
   })
 })
 
-async function montar(administrativa = false) {
+async function montar(administrativa = false, solicitar = false) {
   const pinia = createPinia()
   const auth = useAuthStore(pinia)
   await auth.inicializar()
-  return mount(SolicitudesIngredientes, { props: { administrativa }, global: { plugins: [pinia] } })
+  return mount(solicitar ? SolicitarIngredienteDialogo : SolicitudesIngredientes, {
+    props: solicitar ? {} : { administrativa },
+    global: { plugins: [pinia], stubs: { teleport: true } },
+  })
 }
 
 it('05: usuario solicita un ingrediente mediante RPC, solo nombre y JWT', async () => {
-  const wrapper = await montar()
+  const wrapper = await montar(false, true)
+  await wrapper.get('button').trigger('click')
   await flushPromises()
   await wrapper.get('input').setValue('  Harina de almendras  ')
   await wrapper.get('form').trigger('submit')
@@ -66,6 +71,8 @@ it('07: consulta sus solicitudes y muestra los cuatro estados sin ofrecer modifi
   expect(wrapper.findAll('li')).toHaveLength(4)
   expect(peticiones.find((config) => config.url === 'solicitudes_ingredientes').params.solicitante_id).toBe('eq.uuid-propio')
   expect(wrapper.find('li button').exists()).toBe(false)
+  expect(wrapper.find('form').exists()).toBe(false)
+  expect(wrapper.find('input').exists()).toBe(false)
 })
 
 for (const [caso, accion, etiqueta] of [['08', 'aprobar', 'Aprobar'], ['09', 'rechazar', 'Rechazar'], ['10', 'asociar', 'Asociar']]) {
@@ -114,7 +121,8 @@ it('12: usuario común no dispone de acciones administrativas ni en un montaje d
 })
 
 it('valida nombre vacío y muestra conflictos de solicitudes sin perder el formulario', async () => {
-  const wrapper = await montar()
+  const wrapper = await montar(false, true)
+  await wrapper.get('button').trigger('click')
   await flushPromises()
   await wrapper.get('input').setValue('   ')
   await wrapper.get('form').trigger('submit')

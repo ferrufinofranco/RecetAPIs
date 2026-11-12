@@ -25,3 +25,10 @@ defineEmits(['update:busqueda', 'update:categoria'])
     </div>
   </div>
 </template>
+
+<style scoped>
+.filtros { grid-template-columns: minmax(0, 1fr); gap: .85rem; padding: 0; }
+.campo { min-width: 0; }
+.campo label { font-size: .9rem; margin-bottom: .3rem; }
+input, select { min-width: 0; padding: .6rem .7rem; }
+</style>

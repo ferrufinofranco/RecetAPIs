@@ -1,8 +1,9 @@
 <script setup>
 import { ref, watch } from 'vue'
+import { useListadoAdministracion } from '@/composables/useListadoAdministracion'
 import { useAuthStore } from '@/stores/auth'
 import { obtenerIngredientes } from '@/services/ingredientes'
-import { obtenerSolicitudes, solicitarIngrediente, resolverSolicitud, errorSolicitud } from '@/services/solicitudes'
+import { obtenerSolicitudes, resolverSolicitud, errorSolicitud } from '@/services/solicitudes'
 
 const props = defineProps({ administrativa: { type: Boolean, default: false } })
 const emit = defineEmits(['resuelta'])
@@ -10,7 +11,6 @@ const auth = useAuthStore()
 const filas = ref([])
 const ingredientes = ref([])
 const seleccionados = ref({})
-const nombre = ref('')
 const cargando = ref(true)
 const procesando = ref(false)
 const errorCarga = ref('')
@@ -19,6 +19,8 @@ const exito = ref('')
 const intento = ref(0)
 const resueltas = new Set()
 const estados = { pendiente: 'Pendiente', aprobada: 'Aprobada', rechazada: 'Rechazada', asociada: 'Asociada' }
+
+useListadoAdministracion(() => { if (props.administrativa) intento.value++ }, () => cargando.value || procesando.value, false)
 
 watch([() => auth.user?.id, intento], async ([id], _, onCleanup) => {
   const controller = new AbortController()
@@ -42,20 +44,6 @@ watch([() => auth.user?.id, intento], async ([id], _, onCleanup) => {
     if (!controller.signal.aborted) cargando.value = false
   }
 }, { immediate: true })
-
-async function enviar() {
-  if (procesando.value || !auth.autenticado) return
-  procesando.value = true
-  error.value = ''
-  exito.value = ''
-  try {
-    await solicitarIngrediente(nombre.value)
-    nombre.value = ''
-    exito.value = 'Solicitud enviada. Quedó pendiente de resolución.'
-    intento.value++
-  } catch (err) { error.value = errorSolicitud(err) }
-  finally { procesando.value = false }
-}
 
 async function resolver(item, accion) {
   if (procesando.value || !props.administrativa || !auth.esAdmin || item.estado !== 'pendiente' || resueltas.has(String(item.id))) return
@@ -91,11 +79,7 @@ function fecha(item) {
     <h2 v-if="administrativa">Solicitudes de ingredientes</h2>
     <h1 v-else>Mis solicitudes</h1>
     <button type="button" class="boton-secundario" :disabled="cargando || procesando" @click="intento++">Actualizar solicitudes</button>
-    <form v-if="!administrativa" @submit.prevent="enviar">
-      <label for="nombre-solicitado">Nombre del ingrediente</label>
-      <input id="nombre-solicitado" v-model="nombre" required maxlength="120" :disabled="procesando">
-      <button type="submit" :disabled="procesando">{{ procesando ? 'Enviando…' : 'Solicitar ingrediente' }}</button>
-    </form>
+    <p v-if="!administrativa">Consultá el historial y los estados de tus solicitudes. Para solicitar un ingrediente nuevo, usá el editor de ingredientes al crear o editar una receta.</p>
     <p v-if="exito" class="mensaje-info" role="status">{{ exito }}</p>
     <p v-if="error" class="mensaje-error" role="alert">{{ error }}</p>
     <p v-if="cargando" role="status">Cargando solicitudes…</p>
@@ -126,8 +110,6 @@ function fecha(item) {
 
 <style scoped>
 .solicitudes { margin-block: 2rem; }
-form { max-width: 480px; }
-form button { margin-top: 1rem; }
 .solicitudes-lista { list-style: none; padding: 0; }
 li { border: 1px solid #e1e6dc; border-radius: 14px; padding: 1rem; margin-block: 1rem; overflow-wrap: anywhere; }
 li h3 { margin-top: 0; }
