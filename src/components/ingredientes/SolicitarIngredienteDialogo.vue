@@ -53,7 +53,7 @@ async function enviar() {
 </script>
 
 <template>
-  <button ref="disparador" type="button" class="boton-solicitud" aria-haspopup="dialog" @click="abrir">¿No encontrás el ingrediente? Solicitá uno nuevo</button>
+  <button ref="disparador" type="button" class="boton-solicitud" aria-haspopup="dialog" @click="abrir">Solicitar ingrediente</button>
   <Teleport to="body">
     <dialog v-if="abierto" ref="dialogo" class="solicitud-dialogo" aria-labelledby="titulo-solicitud" aria-describedby="ayuda-solicitud" @cancel.prevent="cerrar">
       <h2 id="titulo-solicitud">Solicitar ingrediente</h2>

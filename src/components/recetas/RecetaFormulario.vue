@@ -1,5 +1,6 @@
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { useCambiosSinGuardar } from '@/composables/useCambiosSinGuardar'
 import { useAuthStore } from '@/stores/auth'
 import { obtenerIngredientes } from '@/services/ingredientes'
 import { obtenerCategorias } from '@/services/categorias'
@@ -10,6 +11,7 @@ import { formularioDesdePropuesta, ingredientesPermitidos } from '@/utils/editar
 import { ErrorCrearReceta, mensajeErrorCrearReceta, prepararDatosReceta } from '@/utils/crearReceta'
 import IngredientesEditor from '@/components/recetas/IngredientesEditor.vue'
 import PasosEditor from '@/components/recetas/PasosEditor.vue'
+import SelectorCategorias from './SelectorCategorias.vue'
 
 const auth = useAuthStore()
 const props = defineProps({
@@ -39,7 +41,61 @@ const guardada = ref(false)
 const contenidoGuardado = ref(false)
 const archivo = ref(null)
 const quitarImagen = ref(false)
+const contenidoInicial = JSON.stringify(formulario)
+const editorIngredientes = ref(null)
+const editorPasos = ref(null)
+const formElement = ref(null)
+const campoError = ref('')
+const pendiente = computed(() => !guardada.value && (
+  JSON.stringify(formulario) !== contenidoInicial || !!archivo.value || quitarImagen.value
+  || editorIngredientes.value?.hayBorrador || editorPasos.value?.hayBorrador
+))
+useCambiosSinGuardar(pendiente)
+
+const destinosError = {
+  titulo: '#titulo-receta', porciones: '#porciones-receta', tiempo: '#tiempo-receta', dificultad: '#dificultad-receta',
+  ingredientes: '#ingredientes-editor', categorias: '#categorias-receta', pasos: '#preparacion-editor',
+}
+function identificarCampo(mensaje) {
+  if (/título/i.test(mensaje)) return 'titulo'
+  if (/porciones/i.test(mensaje)) return 'porciones'
+  if (/tiempo/i.test(mensaje)) return 'tiempo'
+  if (/dificultad/i.test(mensaje)) return 'dificultad'
+  if (/ingrediente|cantidad|unidad/i.test(mensaje)) return 'ingredientes'
+  if (/categoría/i.test(mensaje)) return 'categorias'
+  if (/paso/i.test(mensaje)) return 'pasos'
+  return ''
+}
+function atributosError(campo) {
+  return campoError.value === campo ? { 'aria-invalid': 'true', 'aria-describedby': `error-${campo}` } : {}
+}
+async function enfocarError() {
+  await nextTick()
+  const destino = formElement.value?.querySelector(destinosError[campoError.value] || '#error-guardado')
+  if (!destino) return
+  if (!destino.matches('input, select, textarea')) destino.setAttribute('tabindex', '-1')
+  destino.focus()
+}
+function errorNativo(evento) {
+  evento.preventDefault()
+  const campo = evento.target
+  // El navegador dispara invalid por cada control: conservar el primero.
+  const primero = [...formElement.value.querySelectorAll('input, select, textarea')].find(item => !item.validity.valid)
+  if (campo !== primero) return
+  error.value = campo.validationMessage
+  campoError.value = identificarCampo(campo.id)
+  if (campo.id === 'titulo-receta') campoError.value = 'titulo'
+  if (campo.id.startsWith('paso-')) campoError.value = 'pasos'
+  if (campo.id.startsWith('cantidad-')) campoError.value = 'ingredientes'
+  nextTick(() => campo.focus())
+}
 const errorImagen = ref('')
+const panelErrorImagen = ref(null)
+watch(errorImagen, async (mensaje) => {
+  if (!mensaje) return
+  await nextTick()
+  panelErrorImagen.value?.focus()
+})
 let rutaSubida = null
 let respuestaGuardado
 watch(archivo, () => { rutaSubida = null })
@@ -99,8 +155,10 @@ async function cargarOpciones() {
 async function guardar() {
   if (guardando.value || guardada.value || contenidoGuardado.value || cargando.value || errorCarga.value) return
   error.value = ''
+  campoError.value = ''
   if (!auth.autenticado || auth.user?.id !== autorId) {
     error.value = 'La sesión cambió. Volvé a ingresar al formulario con tu cuenta.'
+    enfocarError()
     return
   }
   guardando.value = true
@@ -136,8 +194,10 @@ async function guardar() {
     finalizar()
   } catch (err) {
     error.value = mensajeErrorCrearReceta(err, editando ? 'guardar la propuesta' : 'crear la receta')
+    campoError.value = err instanceof ErrorCrearReceta ? identificarCampo(err.message) : ''
   } finally {
     guardando.value = false
+    if (error.value) enfocarError()
   }
 }
 
@@ -166,7 +226,8 @@ onMounted(cargarOpciones)
       <p v-else-if="(!ingredientes.some(item => item.activo) && !ingredientesOriginales.length) || !categorias.length" role="status">
         Se necesita al menos un ingrediente permitido y una categoría activa para guardar.
       </p>
-      <form :aria-busy="guardando" @submit.prevent="guardar">
+      <form ref="formElement" :aria-busy="guardando" @submit.prevent="guardar" @invalid.capture="errorNativo">
+        <p v-if="error" id="error-guardado" class="mensaje-error" role="alert">{{ error }}</p>
         <fieldset :disabled="guardando || contenidoGuardado || cargando || !!errorCarga || !auth.autenticado || auth.user?.id !== autorId || (!ingredientes.some(item => item.activo) && !ingredientesOriginales.length) || !categorias.length">
           <legend class="sr-only">Datos de la receta</legend>
           <div class="receta-columnas">
@@ -176,7 +237,8 @@ onMounted(cargarOpciones)
                 <div class="informacion-grid">
                   <div class="campo">
                     <label for="titulo-receta">Título *</label>
-                    <input id="titulo-receta" v-model="formulario.titulo" required>
+                    <input id="titulo-receta" v-model="formulario.titulo" required v-bind="atributosError('titulo')">
+                    <p v-if="campoError === 'titulo'" id="error-titulo" class="error-contextual">{{ error }}</p>
                   </div>
                   <div class="campo">
                     <label for="descripcion-receta">Descripción (opcional)</label>
@@ -186,38 +248,38 @@ onMounted(cargarOpciones)
                 <div class="datos-grid">
                   <div class="campo">
                     <label for="porciones-receta">Porciones *</label>
-                    <input id="porciones-receta" v-model="formulario.porciones" type="number" min="1" step="1" required>
+                    <input id="porciones-receta" v-model="formulario.porciones" type="number" min="1" step="1" required v-bind="atributosError('porciones')">
+                    <p v-if="campoError === 'porciones'" id="error-porciones" class="error-contextual">{{ error }}</p>
                   </div>
                   <div class="campo">
                     <label for="tiempo-receta">Duración (min, opcional)</label>
-                    <input id="tiempo-receta" v-model="formulario.tiempo_minutos" type="number" min="1" step="1">
+                    <input id="tiempo-receta" v-model="formulario.tiempo_minutos" type="number" min="1" step="1" v-bind="atributosError('tiempo')">
+                    <p v-if="campoError === 'tiempo'" id="error-tiempo" class="error-contextual">{{ error }}</p>
                   </div>
                   <div class="campo">
                     <label for="dificultad-receta">Dificultad (opcional)</label>
-                    <select id="dificultad-receta" v-model="formulario.dificultad">
+                    <select id="dificultad-receta" v-model="formulario.dificultad" v-bind="atributosError('dificultad')">
                       <option value="">Sin especificar</option>
                       <option value="facil">Fácil</option>
                       <option value="media">Media</option>
                       <option value="dificil">Difícil</option>
                     </select>
+                    <p v-if="campoError === 'dificultad'" id="error-dificultad" class="error-contextual">{{ error }}</p>
                   </div>
                 </div>
               </section>
               <section aria-labelledby="categorias-receta">
-                <h2 id="categorias-receta">Categorías</h2>
+                <h2 id="categorias-receta" :aria-describedby="campoError === 'categorias' ? 'error-categorias' : undefined">Categorías</h2>
+                <p v-if="campoError === 'categorias'" id="error-categorias" class="error-contextual">{{ error }}</p>
                 <p>Seleccioná al menos una categoría.</p>
-                <div class="categorias-seleccion">
-                  <label v-for="categoria in categorias" :key="categoria.id">
-                    <input v-model="formulario.categorias" type="checkbox" :value="categoria.id">
-                    <span>{{ categoria.nombre }}</span>
-                  </label>
-                </div>
+                <SelectorCategorias v-model="formulario.categorias" :opciones="categorias" :invalido="campoError === 'categorias'"
+                  :descripcion="campoError === 'categorias' ? 'error-categorias' : undefined" />
               </section>
               <ImagenRecetaEditor v-if="!administrativa" v-model:archivo="archivo" v-model:quitar="quitarImagen" :ruta-inicial="propuesta?.imagen_path || ''" />
             </div>
             <div class="receta-columna receta-columna--preparacion">
-              <IngredientesEditor v-model="formulario.ingredientes" :disponibles="ingredientes" :historial-personal="!administrativa" editar-cantidades />
-              <PasosEditor v-model="formulario.pasos" />
+               <IngredientesEditor ref="editorIngredientes" v-model="formulario.ingredientes" :disponibles="ingredientes" :historial-personal="!administrativa" :error-validacion="campoError === 'ingredientes' ? error : ''" editar-cantidades />
+               <PasosEditor ref="editorPasos" v-model="formulario.pasos" :error-validacion="campoError === 'pasos' ? error : ''" />
             </div>
           </div>
           <ImagenRecetaEditor v-if="administrativa" v-model:archivo="archivo" v-model:quitar="quitarImagen" :ruta-inicial="propuesta?.imagen_path || ''" />
@@ -225,9 +287,8 @@ onMounted(cargarOpciones)
             <button type="submit">{{ guardando ? 'Guardando…' : administrativa ? 'Publicar cambios' : publicada ? 'Proponer cambios para aprobación' : rechazado ? 'Reenviar para aprobación' : editando ? 'Guardar cambios' : 'Enviar receta para aprobación' }}</button>
           </div>
         </fieldset>
-        <p v-if="error" class="mensaje-error" role="alert">{{ error }}</p>
       </form>
-      <div v-if="errorImagen" class="mensaje-error" role="alert" :aria-busy="guardando">
+      <div v-if="errorImagen" ref="panelErrorImagen" tabindex="-1" class="mensaje-error" role="alert" :aria-busy="guardando">
         <p>{{ contenidoGuardado ? 'El contenido ya se guardó. No vuelvas a enviarlo.' : 'El contenido todavía no se guardó.' }} {{ errorImagen }}</p>
         <button type="button" :disabled="guardando" @click="reintentarImagen">Reintentar imagen</button>
         <button type="button" :disabled="guardando" @click="continuarSinImagen">Continuar sin cambiar la imagen</button>
@@ -260,9 +321,6 @@ onMounted(cargarOpciones)
 .crear-receta .acciones-editor { display: flex; gap: .5rem; flex-wrap: wrap; }
 .crear-receta .pasos-editor { list-style: none; padding: 0; margin-block: .5rem 0; }
 .crear-receta .pasos-editor li { margin-block: .5rem; }
-.crear-receta .categorias-seleccion { display: flex; gap: .35rem .75rem; flex-wrap: wrap; }
-.crear-receta .categorias-seleccion label { display: flex; align-items: center; gap: .5rem; min-height: 44px; }
-.crear-receta input[type="checkbox"] { width: auto; }
 .crear-receta .mensaje-error { margin-top: 1rem; }
 .crear-receta .motivo-rechazo { white-space: pre-wrap; }
 .crear-receta .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); }
@@ -272,13 +330,6 @@ onMounted(cargarOpciones)
 .crear-receta--amplia .receta-columna { min-width: 0; display: grid; align-content: start; gap: .85rem; }
 .crear-receta--amplia .receta-columna > section { min-width: 0; margin-block: 0; }
 .crear-receta--amplia .datos-grid { align-items: end; }
-.crear-receta--amplia .categorias-seleccion { gap: .4rem; }
-.crear-receta--amplia .categorias-seleccion label { padding: .25rem .65rem; border: 1px solid #b9c5b7; border-radius: 20px; background: white; cursor: pointer; max-width: 100%; }
-.crear-receta--amplia .categorias-seleccion label:has(:checked) { background: #edf2e7; border-color: #365f40; color: #365f40; }
-.crear-receta--amplia .categorias-seleccion label:has(:focus-visible) { outline: 3px solid #b56825; outline-offset: 3px; }
-.crear-receta--amplia .categorias-seleccion input { min-height: 0; margin: 0; flex-shrink: 0; accent-color: #365f40; }
-.crear-receta--amplia .categorias-seleccion input:focus-visible { outline: none; }
-.crear-receta--amplia .categorias-seleccion span { overflow-wrap: anywhere; min-width: 0; }
 .crear-receta--amplia .guardar-receta { display: flex; justify-content: flex-end; padding-block: 1rem; }
 @media (min-width: 1100px) {
   main.contenedor.contenido:has(.crear-receta--amplia) { width: min(1280px, calc(100% - 3rem)); }

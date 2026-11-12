@@ -1,11 +1,15 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
+import { useCambiosSinGuardar } from '@/composables/useCambiosSinGuardar'
 import { useListadoAdministracion } from '@/composables/useListadoAdministracion'
 import { crearCategoria, eliminarCategoria, obtenerCategorias, renombrarCategoria } from '@/services/categorias'
 import { esCategoriaGeneral, mensajeErrorCategoria } from '@/utils/categorias'
 import CategoriaFormulario from './CategoriaFormulario.vue'
+import { normalizar } from '@/utils/catalogo'
 
 const categorias = ref([])
+const busqueda = ref('')
+const filtradas = computed(() => categorias.value.filter(item => normalizar(item.nombre).includes(normalizar(busqueda.value))))
 const seleccionada = ref(null)
 const nombre = ref('')
 const cargando = ref(true)
@@ -14,6 +18,12 @@ const eliminandoId = ref(null)
 const errorListado = ref('')
 const errorOperacion = ref('')
 const exito = ref('')
+const errorFormulario = ref('')
+const { confirmarSalida } = useCambiosSinGuardar(computed(() => nombre.value !== (seleccionada.value?.nombre ?? '')))
+
+function cancelar() {
+  if (confirmarSalida()) nuevaCategoria()
+}
 
 async function cargarCategorias() {
   cargando.value = true
@@ -28,6 +38,7 @@ async function cargarCategorias() {
 }
 
 function nuevaCategoria() {
+  errorFormulario.value = ''
   seleccionada.value = null
   nombre.value = ''
   errorOperacion.value = ''
@@ -35,6 +46,8 @@ function nuevaCategoria() {
 
 function editar(categoria) {
   if (guardando.value || cargando.value || esCategoriaGeneral(categoria)) return
+  if (!confirmarSalida()) return
+  errorFormulario.value = ''
   seleccionada.value = categoria
   nombre.value = categoria.nombre
   errorOperacion.value = ''
@@ -47,6 +60,7 @@ async function guardar() {
   guardando.value = true
   errorOperacion.value = ''
   exito.value = ''
+  errorFormulario.value = ''
   try {
     const editando = !!seleccionada.value
     if (editando) {
@@ -59,8 +73,13 @@ async function guardar() {
     await cargarCategorias()
   } catch (error) {
     errorOperacion.value = mensajeErrorCategoria(error)
+    errorFormulario.value = errorOperacion.value
   } finally {
     guardando.value = false
+    if (errorFormulario.value) {
+      await nextTick()
+      document.getElementById('nombre-categoria')?.focus()
+    }
   }
 }
 
@@ -99,15 +118,22 @@ useListadoAdministracion(cargarCategorias, () => cargando.value || guardando.val
     <p v-if="exito" class="mensaje-info" role="status">{{ exito }}</p>
     <p v-if="errorOperacion" class="mensaje-error" role="alert">{{ errorOperacion }}</p>
     <div class="categorias-panel">
-      <div>
+      <div class="listado-panel">
+        <div class="campo">
+          <label for="buscar-categorias-admin">Buscar categoría por nombre</label>
+          <input id="buscar-categorias-admin" v-model="busqueda" type="search" placeholder="Buscar categoría..." aria-controls="listado-categorias-admin">
+        </div>
         <p v-if="cargando" role="status">Cargando categorías…</p>
         <div v-else-if="errorListado" class="mensaje-error" role="alert">
           <p>{{ errorListado }}</p>
           <button type="button" :disabled="guardando" @click="cargarCategorias">Reintentar listado</button>
         </div>
-        <p v-else-if="!categorias.length" role="status">No hay categorías activas.</p>
+        <template v-else>
+        <p role="status">{{ filtradas.length }} coincidencias de {{ categorias.length }} categorías</p>
+        <div id="listado-categorias-admin" class="listado-scroll" role="region" aria-label="Listado de categorías" tabindex="0">
+        <p v-if="!filtradas.length" class="listado-vacio">{{ categorias.length ? 'No se encontraron categorías' : 'No hay categorías activas.' }}</p>
         <ul v-else class="categorias-lista" aria-label="Categorías activas">
-          <li v-for="categoria in categorias" :key="categoria.id">
+          <li v-for="categoria in filtradas" :key="categoria.id">
             <span>{{ categoria.nombre }}</span>
             <span v-if="esCategoriaGeneral(categoria)" class="dato">Protegida</span>
             <div v-else class="categorias-fila-acciones">
@@ -122,9 +148,24 @@ useListadoAdministracion(cargarCategorias, () => cargando.value || guardando.val
             </div>
           </li>
         </ul>
+        </div>
+        </template>
       </div>
       <CategoriaFormulario v-model:nombre="nombre" :editando="!!seleccionada" :guardando="guardando && eliminandoId === null"
-        :deshabilitado="guardando || cargando || !!errorListado" @guardar="guardar" @cancelar="nuevaCategoria" />
+        :error="errorFormulario" :deshabilitado="guardando || cargando || !!errorListado" @guardar="guardar" @cancelar="cancelar" />
     </div>
   </section>
 </template>
+
+<style scoped>
+.listado-panel { min-width: 0; }
+.listado-scroll { height: 400px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid #e1e6dc; border-radius: 14px; background: white; }
+.listado-vacio { padding: 1rem; }
+.categorias-lista { border: 0; border-radius: 0; }
+.categorias-fila-acciones, .categorias-lista .dato { flex-shrink: 0; }
+@media (max-width: 480px) {
+  .categorias-lista li { flex-direction: column; align-items: stretch; }
+  .categorias-fila-acciones { justify-content: flex-start; }
+  .listado-scroll { height: min(400px, 60vh); }
+}
+</style>

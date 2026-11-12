@@ -96,7 +96,7 @@ describe('Edición de publicadas con propuestas pendientes', () => {
     expect(wrapper.get('#porciones-receta').element.value).toBe('4')
     expect(wrapper.get('#tiempo-receta').element.value).toBe('30')
     expect(wrapper.get('#dificultad-receta').element.value).toBe('facil')
-    expect(wrapper.get('input[type="checkbox"]').element.checked).toBe(true)
+    expect(categoriasSeleccionadas(wrapper)).toEqual(['7'])
     expect(wrapper.get('#cantidad-9').element.value).toBe('200')
     expect(wrapper.get('#unidad-9').element.value).toBe('g')
     expect(wrapper.get('.lista-editor').text()).toContain('inactivo')
@@ -209,11 +209,11 @@ describe('Edición de publicadas con propuestas pendientes', () => {
 
   it('TEST 11: mantiene validaciones de ingredientes, categorías y pasos antes de enviar', async () => {
     const { wrapper } = await abrir()
-    await wrapper.get('input[type="checkbox"]').setValue(false)
+    await wrapper.get('[aria-label="Quitar categoría General"]').trigger('click')
     await wrapper.get('form').trigger('submit')
     await flushPromises()
     expect(wrapper.get('[role="alert"]').text()).toContain('categoría')
-    await wrapper.get('input[type="checkbox"]').setValue(true)
+    await seleccionarCategoria(wrapper, 7)
     await wrapper.get('#cantidad-9').setValue(0)
     await wrapper.get('form').trigger('submit')
     await flushPromises()
@@ -266,3 +266,4 @@ describe('Edición de publicadas con propuestas pendientes', () => {
     expect(escrituras()).toHaveLength(0)
   })
 })
+import { categoriasSeleccionadas, seleccionarCategoria } from './helpers/categorias'

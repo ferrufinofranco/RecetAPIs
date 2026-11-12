@@ -118,6 +118,20 @@ it('conserva motivo y selección de moderación al alternar subpestañas', async
   expect(wrapper.get('.revision').text()).toContain('Sopa')
 })
 
+it('destaca y enfoca el detalle seleccionado y devuelve el foco al cerrar', async () => {
+  const wrapper = await abrir()
+  const disparador = wrapper.get('[aria-label="Revisar Sopa, versión 1"]')
+  await disparador.trigger('click')
+  await flushPromises()
+  expect(document.activeElement).toBe(wrapper.get('#revision-propuesta').element)
+  expect(disparador.attributes('aria-expanded')).toBe('true')
+  expect(wrapper.get('.revision').text()).toContain('Aprobar receta')
+  expect(wrapper.get('.revision').text()).toContain('Rechazar receta')
+  await wrapper.findAll('button').find(item => item.text() === 'Cerrar revisión').trigger('click')
+  expect(document.activeElement).toBe(disparador.element)
+  expect(disparador.attributes('aria-expanded')).toBe('false')
+})
+
 it('actualiza pendientes tras eliminar una receta sin remontar la moderación', async () => {
   const wrapper = await abrir()
   await tab(wrapper, 'admin-recetas-tab-gestion')

@@ -155,7 +155,7 @@ describe('Edición y reenvío desde la interfaz real', () => {
     expect(wrapper.get('#titulo-receta').element.value).toBe('Pan casero')
     expect(wrapper.get('#descripcion-receta').element.value).toBe('Con semillas')
     expect(wrapper.get('#porciones-receta').element.value).toBe('4')
-    expect(wrapper.findAll('input[type="checkbox"]').map((item) => item.element.checked)).toEqual([true, true])
+    expect(categoriasSeleccionadas(wrapper)).toEqual(['7', '8'])
     expect(wrapper.get('#cantidad-9').element.value).toBe('500')
     expect(wrapper.get('#unidad-9').element.value).toBe('g')
     expect(wrapper.findAll('.pasos-editor textarea').map((item) => item.element.value)).toEqual(['Mezclar', 'Hornear'])
@@ -167,13 +167,16 @@ describe('Edición y reenvío desde la interfaz real', () => {
 
   it('TEST 06: el selector y las validaciones impiden ingredientes duplicados', async () => {
     const { wrapper } = await abrir()
-    expect(wrapper.find('#ingrediente-elegido option[value="9"]').exists()).toBe(false)
-    await wrapper.get('#ingrediente-elegido').setValue('10')
+    await wrapper.get('#ingrediente-elegido').trigger('click')
+    expect(wrapper.find('#ingrediente-opcion-9').exists()).toBe(false)
+    await wrapper.get('#ingrediente-opcion-10').trigger('click')
     await wrapper.get('#cantidad-ingrediente').setValue(200)
     const agregar = wrapper.findAll('button').find((item) => item.text() === 'Agregar ingrediente')
     await agregar.trigger('click')
     expect(wrapper.findAll('.lista-editor li')).toHaveLength(2)
-    expect(wrapper.find('#ingrediente-elegido option[value="10"]').exists()).toBe(false)
+    await wrapper.get('#ingrediente-elegido').trigger('click')
+    expect(wrapper.find('#ingrediente-opcion-10').exists()).toBe(false)
+    await wrapper.get('[role="combobox"]').trigger('keydown', { key: 'Escape' })
     await agregar.trigger('click')
     expect(wrapper.getComponent(IngredientesEditor).text()).toContain('todavía no esté agregado')
     expect(wrapper.findAll('.lista-editor li')).toHaveLength(2)
@@ -184,7 +187,9 @@ describe('Edición y reenvío desde la interfaz real', () => {
 
   it('TEST 07: no ofrece ingredientes inactivos nuevos y rechaza su incorporación', async () => {
     const { wrapper } = await abrir()
-    expect(wrapper.find('#ingrediente-elegido option[value="11"]').exists()).toBe(false)
+    await wrapper.get('#ingrediente-elegido').trigger('click')
+    expect(wrapper.find('#ingrediente-opcion-11').exists()).toBe(false)
+    await wrapper.get('[role="combobox"]').trigger('keydown', { key: 'Escape' })
     await wrapper.get('#cantidad-ingrediente').setValue(100)
     await wrapper.findAll('button').find((item) => item.text() === 'Agregar ingrediente').trigger('click')
     expect(wrapper.getComponent(IngredientesEditor).text()).toContain('Seleccioná un ingrediente activo')
@@ -196,7 +201,9 @@ describe('Edición y reenvío desde la interfaz real', () => {
     propuesta.receta_ingredientes[0].ingredientes.activo = false
     const { wrapper } = await abrir()
     expect(wrapper.get('.lista-editor').text()).toContain('Harina (inactivo)')
-    expect(wrapper.find('#ingrediente-elegido option[value="9"]').exists()).toBe(false)
+    await wrapper.get('#ingrediente-elegido').trigger('click')
+    expect(wrapper.find('#ingrediente-opcion-9').exists()).toBe(false)
+    await wrapper.get('[role="combobox"]').trigger('keydown', { key: 'Escape' })
     await wrapper.get('#cantidad-9').setValue(0.5)
     await wrapper.get('#unidad-9').setValue('kg')
     await wrapper.get('form').trigger('submit')
@@ -262,11 +269,13 @@ describe('Edición y reenvío desde la interfaz real', () => {
   })
 
   it('Cancelar vuelve a Mis recetas sin enviar ninguna escritura', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true)
     const { wrapper, router } = await abrir()
     await wrapper.get('#titulo-receta').setValue('Cambio que no se guarda')
     const cancelar = wrapper.findAll('a').find((item) => item.text() === 'Cancelar sin guardar')
     await cancelar.trigger('click')
     await vi.waitFor(() => expect(router.currentRoute.value.name).toBe('mis-recetas'))
+    expect(confirmar).toHaveBeenCalledOnce()
     expect(escrituras()).toHaveLength(0)
   })
 
@@ -282,3 +291,4 @@ describe('Edición y reenvío desde la interfaz real', () => {
     expect(escrituras()).toHaveLength(0)
   })
 })
+import { categoriasSeleccionadas } from './helpers/categorias'

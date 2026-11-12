@@ -76,6 +76,8 @@ for (const admin of [false, true]) {
     await flushPromises()
     expect(router.currentRoute.value.name).toBe('crear-receta')
     expect(router.currentRoute.value.query.solicitudes).toBe('abiertas')
+    expect(router.currentRoute.value.hash).toBe('#historial-solicitudes')
+    expect(appRouter.options.scrollBehavior(router.currentRoute.value)).toEqual({ el: '#historial-solicitudes', top: 24 })
     expect(wrapper.get('#ver-mis-solicitudes').attributes('aria-expanded')).toBe('true')
     expect(wrapper.get('#historial-solicitudes').isVisible()).toBe(true)
     expect(wrapper.get('#historial-solicitudes').text()).toContain('Almendras')
@@ -85,6 +87,27 @@ for (const admin of [false, true]) {
     wrapper.unmount()
   })
 }
+
+it('el enlace anterior abre el historial en un formulario ya montado sin perder sus cambios', async () => {
+  const pinia = createPinia()
+  const router = createRouter({ history: createMemoryHistory(), routes: appRouter.options.routes })
+  router.beforeEach(crearAuthGuard(useAuthStore(pinia)))
+  await router.push('/recetas/crear')
+  const wrapper = mount(App, { attachTo: document.body, global: { plugins: [pinia, router] } })
+  await flushPromises()
+  await wrapper.get('#titulo-receta').setValue('Mi borrador')
+  const titulo = wrapper.get('#titulo-receta').element
+  const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false)
+  await router.push('/mis-solicitudes')
+  await flushPromises()
+  expect(wrapper.get('#titulo-receta').element).toBe(titulo)
+  expect(titulo.value).toBe('Mi borrador')
+  expect(wrapper.get('#ver-mis-solicitudes').attributes('aria-expanded')).toBe('true')
+  expect(wrapper.get('#historial-solicitudes').text()).toContain('Almendras')
+  expect(document.activeElement.id).toBe('historial-solicitudes')
+  expect(confirmar).not.toHaveBeenCalled()
+  expect(post()).toHaveLength(0)
+})
 
 it('07: consulta sus solicitudes y muestra los cuatro estados sin ofrecer modificación', async () => {
   filas = ['pendiente', 'aprobada', 'rechazada', 'asociada'].map((estado, id) => ({ ...filas[0], id, estado }))

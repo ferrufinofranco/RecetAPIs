@@ -1,11 +1,15 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
+import { useCambiosSinGuardar } from '@/composables/useCambiosSinGuardar'
 import { useListadoAdministracion } from '@/composables/useListadoAdministracion'
 import { crearIngrediente, desactivarIngrediente, obtenerIngredientes, renombrarIngrediente } from '@/services/ingredientes'
 import { mensajeErrorIngrediente } from '@/utils/ingredientes'
 import IngredienteFormulario from './IngredienteFormulario.vue'
+import { normalizar } from '@/utils/catalogo'
 
 const ingredientes = ref([])
+const busqueda = ref('')
+const filtrados = computed(() => ingredientes.value.filter(item => normalizar(item.nombre).includes(normalizar(busqueda.value))))
 const seleccionado = ref(null)
 const nombre = ref('')
 const cargando = ref(true)
@@ -14,6 +18,12 @@ const desactivandoId = ref(null)
 const errorListado = ref('')
 const errorOperacion = ref('')
 const exito = ref('')
+const errorFormulario = ref('')
+const { confirmarSalida } = useCambiosSinGuardar(computed(() => nombre.value !== (seleccionado.value?.nombre ?? '')))
+
+function cancelar() {
+  if (confirmarSalida()) nuevoIngrediente()
+}
 
 async function cargarIngredientes() {
   cargando.value = true
@@ -28,6 +38,7 @@ async function cargarIngredientes() {
 }
 
 function nuevoIngrediente() {
+  errorFormulario.value = ''
   seleccionado.value = null
   nombre.value = ''
   errorOperacion.value = ''
@@ -35,6 +46,8 @@ function nuevoIngrediente() {
 
 function editar(ingrediente) {
   if (guardando.value || cargando.value || errorListado.value) return
+  if (!confirmarSalida()) return
+  errorFormulario.value = ''
   seleccionado.value = ingrediente
   nombre.value = ingrediente.nombre
   errorOperacion.value = ''
@@ -47,6 +60,7 @@ async function guardar() {
   guardando.value = true
   errorOperacion.value = ''
   exito.value = ''
+  errorFormulario.value = ''
   try {
     const editando = !!seleccionado.value
     if (editando) {
@@ -59,8 +73,13 @@ async function guardar() {
     await cargarIngredientes()
   } catch (error) {
     errorOperacion.value = mensajeErrorIngrediente(error)
+    errorFormulario.value = errorOperacion.value
   } finally {
     guardando.value = false
+    if (errorFormulario.value) {
+      await nextTick()
+      document.getElementById('nombre-ingrediente')?.focus()
+    }
   }
 }
 
@@ -98,15 +117,22 @@ useListadoAdministracion(cargarIngredientes, () => cargando.value || guardando.v
     <p v-if="exito" class="mensaje-info" role="status">{{ exito }}</p>
     <p v-if="errorOperacion" class="mensaje-error" role="alert">{{ errorOperacion }}</p>
     <div class="ingredientes-panel">
-      <div>
+      <div class="listado-panel">
+        <div class="campo">
+          <label for="buscar-ingredientes-admin">Buscar ingrediente por nombre</label>
+          <input id="buscar-ingredientes-admin" v-model="busqueda" type="search" placeholder="Buscar ingrediente..." aria-controls="listado-ingredientes-admin">
+        </div>
         <p v-if="cargando" role="status">Cargando ingredientes…</p>
         <div v-else-if="errorListado" class="mensaje-error" role="alert">
           <p>{{ errorListado }}</p>
           <button type="button" :disabled="guardando" @click="cargarIngredientes">Reintentar listado</button>
         </div>
-        <p v-else-if="!ingredientes.length" role="status">No hay ingredientes disponibles.</p>
+        <template v-else>
+        <p role="status">{{ filtrados.length }} coincidencias de {{ ingredientes.length }} ingredientes</p>
+        <div id="listado-ingredientes-admin" class="listado-scroll" role="region" aria-label="Listado de ingredientes" tabindex="0">
+        <p v-if="!filtrados.length" class="listado-vacio">{{ ingredientes.length ? 'No se encontraron ingredientes' : 'No hay ingredientes disponibles.' }}</p>
         <ul v-else class="ingredientes-lista" aria-label="Ingredientes activos e inactivos">
-          <li v-for="ingrediente in ingredientes" :key="ingrediente.id">
+          <li v-for="ingrediente in filtrados" :key="ingrediente.id">
             <div class="ingrediente-datos">
               <span>{{ ingrediente.nombre }}</span>
               <span class="estado" :class="{ inactivo: !ingrediente.activo }">
@@ -123,9 +149,11 @@ useListadoAdministracion(cargarIngredientes, () => cargando.value || guardando.v
             </div>
           </li>
         </ul>
+        </div>
+        </template>
       </div>
       <IngredienteFormulario v-model:nombre="nombre" :editando="!!seleccionado" :guardando="guardando && desactivandoId === null"
-        :deshabilitado="guardando || cargando || !!errorListado" @guardar="guardar" @cancelar="nuevoIngrediente" />
+        :error="errorFormulario" :deshabilitado="guardando || cargando || !!errorListado" @guardar="guardar" @cancelar="cancelar" />
     </div>
   </section>
 </template>
@@ -133,12 +161,20 @@ useListadoAdministracion(cargarIngredientes, () => cargando.value || guardando.v
 <style scoped>
 .admin-ingredientes { margin-block: 3rem 2rem; }
 .ingredientes-panel { display: grid; grid-template-columns: 1.3fr 1fr; gap: 2rem; align-items: start; }
-.ingredientes-lista { list-style: none; padding: 0; margin: 0; border: 1px solid #e1e6dc; border-radius: 14px; overflow: hidden; background: white; }
+.listado-panel { min-width: 0; }
+.listado-scroll { height: 400px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid #e1e6dc; border-radius: 14px; background: white; }
+.listado-vacio { padding: 1rem; }
+.ingredientes-lista { list-style: none; padding: 0; margin: 0; background: white; }
 .ingredientes-lista li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border-bottom: 1px solid #e1e6dc; }
 .ingredientes-lista li:last-child { border-bottom: 0; }
 .ingrediente-datos { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; min-width: 0; overflow-wrap: anywhere; }
-.ingrediente-fila-acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+.ingrediente-fila-acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; flex-shrink: 0; }
 .estado { background: #edf2e7; color: #455e38; border-radius: 20px; padding: .2rem .7rem; font-size: .8rem; }
 .estado.inactivo { background: #ececea; color: #555b53; }
 @media (max-width: 700px) { .ingredientes-panel { grid-template-columns: 1fr; } }
+@media (max-width: 480px) {
+  .ingredientes-lista li { flex-direction: column; align-items: stretch; }
+  .ingrediente-fila-acciones { justify-content: flex-start; }
+  .listado-scroll { height: min(400px, 60vh); }
+}
 </style>

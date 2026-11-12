@@ -4,6 +4,7 @@ import CategoriaEtiquetas from '@/components/CategoriaEtiquetas.vue'
 import RecetaImagen from '@/components/RecetaImagen.vue'
 import { obtenerReceta } from '@/services/recetas'
 import NoEncontradaView from './NoEncontradaView.vue'
+import { duracionLegible, dificultadLegible } from '@/utils/presentacionReceta'
 
 const props = defineProps({ id: { type: String, required: true } })
 const receta = ref(null)
@@ -41,16 +42,16 @@ watch([() => props.id, intento], async ([id], _, onCleanup) => {
   <article v-else-if="receta" class="detalle">
     <RouterLink :to="{ name: 'catalogo' }" class="volver">← Volver al catálogo</RouterLink>
     <div class="detalle-cabecera">
-      <RecetaImagen :src="receta.imagen" :alt="receta.titulo" />
+      <RecetaImagen :src="receta.imagen" :alt="receta.titulo" prioritaria />
       <header>
         <p class="ceja">Receta publicada</p>
         <h1>{{ receta.titulo }}</h1>
         <CategoriaEtiquetas :categorias="receta.categorias" />
-        <p class="descripcion">{{ receta.descripcion }}</p>
+        <p v-if="receta.descripcion?.trim()" class="descripcion">{{ receta.descripcion }}</p>
         <dl class="datos-receta">
           <div><dt>Porciones</dt><dd>{{ receta.porciones }}</dd></div>
-          <div><dt>Tiempo total</dt><dd>{{ receta.tiempoMinutos }} min</dd></div>
-          <div><dt>Dificultad</dt><dd>{{ receta.dificultad }}</dd></div>
+          <div><dt>Tiempo total</dt><dd>{{ duracionLegible(receta.tiempoMinutos) || 'Sin especificar' }}</dd></div>
+          <div><dt>Dificultad</dt><dd>{{ dificultadLegible(receta.dificultad) || 'Sin especificar' }}</dd></div>
         </dl>
       </header>
     </div>

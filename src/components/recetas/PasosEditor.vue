@@ -1,16 +1,19 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 
-const props = defineProps({ modelValue: { type: Array, required: true } })
+const props = defineProps({ modelValue: { type: Array, required: true }, errorValidacion: { type: String, default: '' } })
 const emit = defineEmits(['update:modelValue'])
 const nuevoPaso = ref('')
 const error = ref('')
+const hayBorrador = computed(() => !!nuevoPaso.value)
+defineExpose({ hayBorrador })
 let siguienteId = 0
 
 function agregar() {
   error.value = ''
   if (!nuevoPaso.value.trim()) {
     error.value = 'Escribí el paso antes de agregarlo.'
+    nextTick(() => document.getElementById('nuevo-paso')?.focus())
     return
   }
   while (props.modelValue.some((paso) => paso.clave === siguienteId)) siguienteId++
@@ -33,15 +36,16 @@ function mover(indice, direccion) {
 
 <template>
   <section aria-labelledby="preparacion-editor">
-    <h2 id="preparacion-editor">Preparación</h2>
+    <h2 id="preparacion-editor" :aria-describedby="errorValidacion ? 'error-pasos' : undefined">Preparación</h2>
+    <p v-if="errorValidacion" id="error-pasos" class="error-contextual">{{ errorValidacion }}</p>
     <div class="paso-nuevo">
       <div>
         <label for="nuevo-paso">Nuevo paso</label>
-        <textarea id="nuevo-paso" v-model="nuevoPaso" rows="2" />
+        <textarea id="nuevo-paso" v-model="nuevoPaso" rows="2" :aria-invalid="!!error || undefined" :aria-describedby="error ? 'error-agregar-paso' : undefined" />
       </div>
       <button type="button" @click="agregar">Agregar paso</button>
     </div>
-    <p v-if="error" class="mensaje-error" role="alert">{{ error }}</p>
+    <p v-if="error" id="error-agregar-paso" class="mensaje-error" role="alert">{{ error }}</p>
     <ol class="pasos-editor">
       <li v-for="(paso, indice) in modelValue" :key="paso.clave">
         <div>

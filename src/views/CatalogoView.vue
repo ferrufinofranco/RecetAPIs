@@ -36,7 +36,7 @@ async function cargarRecetas() {
   try {
     recetas.value = await obtenerRecetas()
   } catch {
-    error.value = 'No pudimos cargar las recetas. Revisá la conexión y la configuración de Supabase.'
+    error.value = 'No pudimos cargar las recetas. Revisá tu conexión a internet y volvé a intentar.'
   } finally {
     cargando.value = false
   }

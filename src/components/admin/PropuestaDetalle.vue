@@ -1,6 +1,7 @@
 <script setup>
 import CategoriaEtiquetas from '@/components/CategoriaEtiquetas.vue'
 import RecetaImagen from '@/components/RecetaImagen.vue'
+import { duracionLegible, dificultadLegible } from '@/utils/presentacionReceta'
 
 defineProps({ propuesta: { type: Object, required: true } })
 </script>
@@ -16,8 +17,8 @@ defineProps({ propuesta: { type: Object, required: true } })
         <p class="descripcion">{{ propuesta.descripcion || 'Sin descripción.' }}</p>
         <dl class="datos-receta">
           <div><dt>Porciones</dt><dd>{{ propuesta.porciones }}</dd></div>
-          <div><dt>Tiempo</dt><dd>{{ propuesta.tiempoMinutos == null ? 'Sin especificar' : `${propuesta.tiempoMinutos} min` }}</dd></div>
-          <div><dt>Dificultad</dt><dd>{{ propuesta.dificultad || 'Sin especificar' }}</dd></div>
+          <div><dt>Tiempo</dt><dd>{{ duracionLegible(propuesta.tiempoMinutos) || 'Sin especificar' }}</dd></div>
+          <div><dt>Dificultad</dt><dd>{{ dificultadLegible(propuesta.dificultad) || 'Sin especificar' }}</dd></div>
         </dl>
       </header>
     </div>

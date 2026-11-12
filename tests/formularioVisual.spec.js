@@ -7,6 +7,7 @@ import RecetaFormulario from '@/components/recetas/RecetaFormulario.vue'
 import PasosEditor from '@/components/recetas/PasosEditor.vue'
 import ImagenRecetaEditor from '@/components/recetas/ImagenRecetaEditor.vue'
 import { usuarioPrueba } from './vitest.setup'
+import { categoriasSeleccionadas, seleccionarCategoria } from './helpers/categorias'
 
 let peticiones, falloSolicitud, pendienteSolicitud, historial
 const posts = () => peticiones.filter((config) => config.method === 'post')
@@ -18,6 +19,7 @@ const propuesta = {
 }
 
 beforeEach(() => {
+  vi.spyOn(window, 'confirm').mockReturnValue(true)
   peticiones = []
   falloSolicitud = null
   pendienteSolicitud = null
@@ -65,7 +67,8 @@ async function montar(edicion = false) {
 
 const boton = (wrapper, texto) => wrapper.findAll('button').find((item) => item.text() === texto)
 async function agregarIngrediente(wrapper, id = 9) {
-  await wrapper.get('#ingrediente-elegido').setValue(id)
+  await wrapper.get('#ingrediente-elegido').trigger('click')
+  await wrapper.get(`#ingrediente-opcion-${id}`).trigger('click')
   await wrapper.get('#cantidad-ingrediente').setValue(100)
   await boton(wrapper, 'Agregar ingrediente').trigger('click')
 }
@@ -75,17 +78,21 @@ it('ordena las secciones y permite agregar, editar y quitar ingredientes durante
   expect(wrapper.findAll('form section h2').map((item) => item.text())).toEqual([
     'Información general', 'Categorías', 'Imagen (opcional)', 'Ingredientes', 'Preparación',
   ])
-  expect(wrapper.find('option[value="11"]').exists()).toBe(false)
+  await wrapper.get('#ingrediente-elegido').trigger('click')
+  expect(wrapper.find('#ingrediente-opcion-11').exists()).toBe(false)
+  await wrapper.get('[role="combobox"]').trigger('keydown', { key: 'Escape' })
   await agregarIngrediente(wrapper)
   await wrapper.get('#cantidad-9').setValue(.5)
   await wrapper.get('#unidad-9').setValue('kg')
   await agregarIngrediente(wrapper, 10)
   await wrapper.get('[aria-label="Quitar Leche"]').trigger('click')
   expect(wrapper.findAll('.lista-editor li')).toHaveLength(1)
-  expect(wrapper.find('option[value="10"]').exists()).toBe(true)
+  await wrapper.get('#ingrediente-elegido').trigger('click')
+  expect(wrapper.find('#ingrediente-opcion-10').exists()).toBe(true)
+  await wrapper.get('[role="combobox"]').trigger('keydown', { key: 'Escape' })
   await wrapper.get('#titulo-receta').setValue('Pan nuevo')
   await wrapper.get('#porciones-receta').setValue(2)
-  await wrapper.get('input[type="checkbox"]').setValue(true)
+  await seleccionarCategoria(wrapper, 7)
   await wrapper.get('#nuevo-paso').setValue('Mezclar')
   await boton(wrapper, 'Agregar paso').trigger('click')
   await wrapper.get('form').trigger('submit')
@@ -109,12 +116,11 @@ it('agrupa las columnas en orden de lectura y deja el guardado después de ambas
 
 it('las etiquetas de categorías conservan la selección múltiple y los IDs del payload', async () => {
   const wrapper = await montar(true)
-  const categorias = wrapper.findAll('.categorias-seleccion input')
-  expect(categorias.map((item) => item.element.checked)).toEqual([true, false])
-  expect(wrapper.findAll('.categorias-seleccion label').map((item) => item.text())).toEqual(['General', 'Desayuno'])
-  await categorias[1].setValue(true)
-  await categorias[0].setValue(false)
-  await categorias[0].setValue(true)
+  expect(categoriasSeleccionadas(wrapper)).toEqual(['7'])
+  expect(wrapper.get('.categorias-etiquetas').text()).toContain('General')
+  await seleccionarCategoria(wrapper, 8)
+  await wrapper.get('[aria-label="Quitar categoría General"]').trigger('click')
+  await seleccionarCategoria(wrapper, 7)
   await wrapper.get('form').trigger('submit')
   await flushPromises()
   expect(JSON.parse(posts()[0].data).p_datos.categorias).toEqual([8, 7])
@@ -143,7 +149,7 @@ for (const edicion of [false, true]) {
     await wrapper.get('#titulo-receta').setValue('Mi receta sin guardar')
     await wrapper.get('#descripcion-receta').setValue('Descripción conservada')
     await wrapper.get('#porciones-receta').setValue(3)
-    await wrapper.get('input[type="checkbox"]').setValue(true)
+    if (!edicion) await seleccionarCategoria(wrapper, 7)
     if (!edicion) await agregarIngrediente(wrapper)
     await wrapper.get('#cantidad-ingrediente').setValue(77)
     await wrapper.get('#nuevo-paso').setValue('Borrador de paso')
@@ -152,6 +158,10 @@ for (const edicion of [false, true]) {
     const errorIngrediente = wrapper.getComponent({ name: 'IngredientesEditor' }).get('[role="alert"]').text()
     const titulo = wrapper.get('#titulo-receta').element
     const toggle = wrapper.get('#ver-mis-solicitudes')
+    const accionesSolicitudes = wrapper.get('.solicitudes-acciones')
+    expect(accionesSolicitudes.get('[aria-haspopup="dialog"]').text()).toBe('Solicitar ingrediente')
+    expect(accionesSolicitudes.get('#ver-mis-solicitudes').element).toBe(toggle.element)
+    expect(accionesSolicitudes.find('#historial-solicitudes').exists()).toBe(false)
     expect(toggle.attributes('aria-expanded')).toBe('false')
     expect(toggle.get('[aria-hidden="true"]').text()).toBe('↓')
     expect(wrapper.get('#historial-solicitudes').isVisible()).toBe(false)
@@ -203,7 +213,7 @@ for (const edicion of [false, true]) {
     expect(wrapper.get('#titulo-receta').element.value).toBe('Mi receta sin guardar')
     expect(wrapper.get('#descripcion-receta').element.value).toBe('Descripción conservada')
     expect(wrapper.get('#porciones-receta').element.value).toBe('3')
-    expect(wrapper.get('input[type="checkbox"]').element.checked).toBe(true)
+    expect(categoriasSeleccionadas(wrapper)).toEqual(['7'])
     expect(wrapper.findAll('.lista-editor li')).toHaveLength(1)
     expect(wrapper.get('#cantidad-ingrediente').element.value).toBe('77')
     expect(wrapper.get('#nuevo-paso').element.value).toBe('Borrador de paso')
@@ -272,4 +282,62 @@ it('cancelar una solicitud conserva el nombre y la receta sin enviar ninguna ope
   await disparador.trigger('click')
   await flushPromises()
   expect(document.querySelector('dialog input').value).toBe('Almendras')
+})
+
+it('relee el historial al reexpandir sin remontar ni perder el borrador principal', async () => {
+  const wrapper = await montar(true)
+  await wrapper.get('#nuevo-paso').setValue('Borrador conservado')
+  const titulo = wrapper.get('#titulo-receta').element
+  const toggle = wrapper.get('#ver-mis-solicitudes')
+  await toggle.trigger('click')
+  await flushPromises()
+  const lecturas = () => peticiones.filter(item => item.url === 'solicitudes_ingredientes' && !item.params.offset).length
+  const antes = lecturas()
+  await toggle.trigger('click')
+  historial[0].estado = 'aprobada'
+  historial.push({ id: 99, nombre_solicitado: 'Externo', estado: 'asociada', ingrediente_id: 9 })
+  await toggle.trigger('click')
+  await flushPromises()
+  expect(lecturas()).toBe(antes + 1)
+  expect(wrapper.get('#historial-solicitudes').text()).toContain('Externo')
+  expect(wrapper.get('#titulo-receta').element).toBe(titulo)
+  expect(wrapper.get('#nuevo-paso').element.value).toBe('Borrador conservado')
+  expect(posts()).toHaveLength(0)
+})
+
+it('vincula errores al campo o sección correspondiente y mueve el foco sin enviar datos inválidos', async () => {
+  const wrapper = await montar()
+  const enviar = async () => { await wrapper.get('form').trigger('submit'); await flushPromises() }
+  await enviar()
+  expect(document.activeElement.id).toBe('titulo-receta')
+  expect(wrapper.get('#titulo-receta').attributes('aria-invalid')).toBe('true')
+  expect(wrapper.get('#error-titulo').text()).toBe('Ingresá un título.')
+  await wrapper.get('#titulo-receta').setValue('Pan')
+  await enviar()
+  expect(document.activeElement.id).toBe('porciones-receta')
+  await wrapper.get('#porciones-receta').setValue(2)
+  await enviar()
+  expect(document.activeElement.id).toBe('ingredientes-editor')
+  expect(wrapper.get('#error-ingredientes').text()).toContain('al menos un ingrediente')
+  await agregarIngrediente(wrapper)
+  await enviar()
+  expect(document.activeElement.id).toBe('categorias-receta')
+  expect(wrapper.get('#agregar-categorias').attributes('aria-invalid')).toBe('true')
+  expect(wrapper.get('#agregar-categorias').attributes('aria-describedby')).toBe('error-categorias')
+  await seleccionarCategoria(wrapper, 7)
+  await enviar()
+  expect(document.activeElement.id).toBe('preparacion-editor')
+  expect(wrapper.get('#error-pasos').text()).toContain('al menos un paso')
+  expect(posts()).toHaveLength(0)
+})
+
+it('presenta también la validación nativa con contexto y foco', async () => {
+  const wrapper = await montar(true)
+  await wrapper.get('#porciones-receta').setValue(0)
+  await wrapper.get('#porciones-receta').trigger('invalid')
+  await flushPromises()
+  expect(document.activeElement.id).toBe('porciones-receta')
+  expect(wrapper.get('#porciones-receta').attributes('aria-describedby')).toBe('error-porciones')
+  expect(wrapper.get('#error-porciones').text()).not.toBe('')
+  expect(posts()).toHaveLength(0)
 })

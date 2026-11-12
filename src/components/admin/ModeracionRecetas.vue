@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, ref } from 'vue'
+import { nextTick, onBeforeUnmount, ref } from 'vue'
 import { useListadoAdministracion } from '@/composables/useListadoAdministracion'
 import { useAuthStore } from '@/stores/auth'
 import { aprobarReceta, rechazarReceta, obtenerPropuesta, obtenerPropuestasPendientes, mensajeErrorModeracion } from '@/services/moderacion'
@@ -17,6 +17,8 @@ const errorListado = ref('')
 const errorDetalle = ref('')
 const errorOperacion = ref('')
 const exito = ref('')
+const panelRevision = ref(null)
+let disparadorRevision
 let listadoController
 let detalleController
 
@@ -32,6 +34,7 @@ function cerrarRevision() {
   motivo.value = ''
   errorDetalle.value = ''
   revisando.value = false
+  disparadorRevision?.focus()
 }
 
 async function cargarListado(conservarRevision = false) {
@@ -54,9 +57,10 @@ async function cargarListado(conservarRevision = false) {
   }
 }
 
-async function revisar(id) {
+async function revisar(id, disparador) {
   if (procesando.value || cargando.value || !auth.esAdmin) return
   cerrarRevision()
+  disparadorRevision = disparador
   const controller = new AbortController()
   detalleController = controller
   seleccionadaId.value = id
@@ -71,7 +75,12 @@ async function revisar(id) {
   } catch {
     if (!controller.signal.aborted) errorDetalle.value = 'No pudimos cargar el contenido de la propuesta. Volvé a revisarla.'
   } finally {
-    if (!controller.signal.aborted) revisando.value = false
+    if (!controller.signal.aborted) {
+      revisando.value = false
+      await nextTick()
+      panelRevision.value?.focus()
+      panelRevision.value?.scrollIntoView?.({ block: 'start', behavior: 'instant' })
+    }
   }
 }
 
@@ -132,10 +141,11 @@ onBeforeUnmount(() => {
           <p class="dato">Versión {{ item.numero }} · <time :datetime="item.creada_en">{{ fecha(item.creada_en) }}</time></p>
         </div>
         <button type="button" :disabled="procesando || !auth.esAdmin" :aria-label="`Revisar ${item.titulo}, versión ${item.numero}`"
-          @click="revisar(item.id)">Revisar</button>
+          :aria-expanded="seleccionadaId === item.id" aria-controls="revision-propuesta"
+          @click="revisar(item.id, $event.currentTarget)">Revisar</button>
       </li>
     </ul>
-    <section v-if="seleccionadaId !== null" class="revision" aria-label="Revisión de propuesta">
+    <section v-if="seleccionadaId !== null" id="revision-propuesta" ref="panelRevision" class="revision" tabindex="-1" aria-label="Revisión de propuesta" :aria-busy="revisando">
       <p v-if="revisando" role="status">Cargando contenido completo…</p>
       <p v-else-if="errorDetalle" class="mensaje-error" role="alert">{{ errorDetalle }}</p>
       <template v-else-if="propuesta">
@@ -164,6 +174,7 @@ onBeforeUnmount(() => {
 .lista-propuestas li > div { min-width: 0; overflow-wrap: anywhere; }
 .lista-propuestas p { margin-bottom: 0; }
 .revision { padding: 1.5rem; margin-top: 2rem; border: 1px solid #e1e6dc; border-radius: 16px; background: #fffdf8; }
+.revision:focus { outline: 3px solid #b56825; outline-offset: 4px; }
 .decision { border: 0; margin: 2rem 0 1rem; padding: 0; min-width: 0; }
 .decision legend { font-weight: 700; margin-bottom: 1rem; }
 .decision textarea { display: block; width: 100%; resize: vertical; font: inherit; padding: .75rem; border: 1px solid #b9c5b7; border-radius: 10px; margin-block: .5rem 1rem; }

@@ -4,6 +4,7 @@ defineProps({
   editando: { type: Boolean, default: false },
   deshabilitado: { type: Boolean, default: false },
   guardando: { type: Boolean, default: false },
+  error: { type: String, default: '' },
 })
 defineEmits(['update:nombre', 'guardar', 'cancelar'])
 </script>
@@ -13,7 +14,9 @@ defineEmits(['update:nombre', 'guardar', 'cancelar'])
     <h3>{{ editando ? 'Modificar ingrediente' : 'Nuevo ingrediente' }}</h3>
     <label for="nombre-ingrediente">Nombre</label>
     <input id="nombre-ingrediente" :value="nombre" name="nombre" required :disabled="deshabilitado"
+      :aria-invalid="!!error || undefined" :aria-describedby="error ? 'error-nombre-ingrediente' : undefined"
       @input="$emit('update:nombre', $event.target.value)">
+    <p v-if="error" id="error-nombre-ingrediente" class="error-contextual">{{ error }}</p>
     <div class="ingrediente-acciones">
       <button type="submit" :disabled="deshabilitado">
         {{ guardando ? 'Guardando…' : editando ? 'Guardar cambios' : 'Crear ingrediente' }}

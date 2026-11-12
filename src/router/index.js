@@ -61,7 +61,9 @@ const router = createRouter({
       component: () => import('@/views/NoEncontradaView.vue'),
     },
   ],
-  scrollBehavior: () => ({ top: 0 }),
+  scrollBehavior: (to) => to.hash === '#historial-solicitudes'
+    ? { el: '#historial-solicitudes', top: 24 }
+    : { top: 0 },
 })
 
 router.beforeEach((to) => crearAuthGuard(useAuthStore())(to))

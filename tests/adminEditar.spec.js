@@ -123,11 +123,11 @@ it('25: usuario común no accede a la ruta ni dispone de la operación administr
 
 it('26: conserva las validaciones de categorías, ingredientes y pasos', async () => {
   const { wrapper } = await abrir()
-  await wrapper.get('input[type="checkbox"]').setValue(false)
+  await wrapper.get('[aria-label="Quitar categoría General"]').trigger('click')
   await wrapper.get('form').trigger('submit')
   await flushPromises()
   expect(wrapper.get('[role="alert"]').text()).toContain('categoría')
-  await wrapper.get('input[type="checkbox"]').setValue(true)
+  await seleccionarCategoria(wrapper, 7)
   await wrapper.get('#cantidad-9').setValue(0)
   await wrapper.get('form').trigger('submit')
   await flushPromises()
@@ -178,3 +178,4 @@ it('un fallo de Storage en edición admin permite publicar sin cambiar imagen, s
   expect(posts()).toHaveLength(1)
   expect(JSON.parse(posts()[0].data).p_datos).not.toHaveProperty('imagen_path')
 })
+import { seleccionarCategoria } from './helpers/categorias'
