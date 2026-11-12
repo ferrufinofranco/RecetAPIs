@@ -216,7 +216,7 @@ onMounted(cargarOpciones)
               <ImagenRecetaEditor v-if="!administrativa" v-model:archivo="archivo" v-model:quitar="quitarImagen" :ruta-inicial="propuesta?.imagen_path || ''" />
             </div>
             <div class="receta-columna receta-columna--preparacion">
-              <IngredientesEditor v-model="formulario.ingredientes" :disponibles="ingredientes" editar-cantidades />
+              <IngredientesEditor v-model="formulario.ingredientes" :disponibles="ingredientes" :historial-personal="!administrativa" editar-cantidades />
               <PasosEditor v-model="formulario.pasos" />
             </div>
           </div>

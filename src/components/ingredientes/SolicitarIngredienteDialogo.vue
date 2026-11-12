@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { solicitarIngrediente, errorSolicitud } from '@/services/solicitudes'
 
 const auth = useAuthStore()
+const emit = defineEmits(['enviada'])
 const abierto = ref(false)
 const dialogo = ref(null)
 const disparador = ref(null)
@@ -37,6 +38,7 @@ async function enviar() {
   error.value = ''
   try {
     await solicitarIngrediente(nombre.value)
+    emit('enviada')
     nombre.value = ''
     exito.value = 'Solicitud enviada. Quedó pendiente de resolución. No se agregó a la receta.'
     await nextTick()
@@ -51,11 +53,11 @@ async function enviar() {
 </script>
 
 <template>
-  <button ref="disparador" type="button" class="boton-solicitud boton-secundario" aria-haspopup="dialog" @click="abrir">¿No encontrás el ingrediente? Solicitá uno nuevo</button>
+  <button ref="disparador" type="button" class="boton-solicitud" aria-haspopup="dialog" @click="abrir">¿No encontrás el ingrediente? Solicitá uno nuevo</button>
   <Teleport to="body">
     <dialog v-if="abierto" ref="dialogo" class="solicitud-dialogo" aria-labelledby="titulo-solicitud" aria-describedby="ayuda-solicitud" @cancel.prevent="cerrar">
       <h2 id="titulo-solicitud">Solicitar ingrediente</h2>
-      <p id="ayuda-solicitud">Ingresá el nombre del ingrediente. La solicitud no lo agrega a la receta. Podrás consultar su estado en Mis solicitudes.</p>
+      <p id="ayuda-solicitud">Ingresá el nombre del ingrediente. La solicitud no lo agrega a la receta. Podrás consultar su estado en «Ver mis solicitudes», dentro de Ingredientes.</p>
       <form v-if="!exito" :aria-busy="enviando" @submit.prevent.stop="enviar">
         <label for="nombre-solicitado">Nombre del ingrediente</label>
         <input id="nombre-solicitado" ref="entrada" v-model="nombre" required maxlength="120" :readonly="enviando" :aria-invalid="!!error" :aria-describedby="error ? 'error-solicitud' : undefined">
@@ -75,7 +77,9 @@ async function enviar() {
 </template>
 
 <style scoped>
-.boton-solicitud { margin-top: .65rem; text-align: left; }
+.boton-solicitud { margin-top: .65rem; text-align: left; background: transparent; color: #365f40; border: 0; border-radius: 0; }
+.boton-solicitud:hover { text-decoration: underline; text-underline-offset: 4px; }
+.boton-solicitud:focus-visible { outline: 3px solid #b56825; outline-offset: 3px; }
 .solicitud-dialogo { width: min(480px, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow: auto; padding: 1.25rem; border: 1px solid #b9c5b7; border-radius: 14px; color: #27372b; background: #faf9f5; }
 .solicitud-dialogo::backdrop { background: #27372b99; }
 .solicitud-dialogo h2 { margin-bottom: .5rem; }

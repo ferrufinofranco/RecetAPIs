@@ -8,7 +8,7 @@ import PasosEditor from '@/components/recetas/PasosEditor.vue'
 import ImagenRecetaEditor from '@/components/recetas/ImagenRecetaEditor.vue'
 import { usuarioPrueba } from './vitest.setup'
 
-let peticiones, falloSolicitud, pendienteSolicitud
+let peticiones, falloSolicitud, pendienteSolicitud, historial
 const posts = () => peticiones.filter((config) => config.method === 'post')
 const propuesta = {
   id: 83, receta_id: 12, estado: 'pendiente', titulo: 'Pan', porciones: 4,
@@ -21,6 +21,11 @@ beforeEach(() => {
   peticiones = []
   falloSolicitud = null
   pendienteSolicitud = null
+  historial = ['pendiente', 'aprobada', 'rechazada', 'asociada'].map((estado, id) => ({
+    id, nombre_solicitado: `Solicitud ${estado}`, estado,
+    ingrediente_id: ['aprobada', 'asociada'].includes(estado) ? 9 : null,
+    creada_en: id ? '2026-11-12T12:00:00Z' : null,
+  }))
   URL.createObjectURL = vi.fn(() => 'blob:receta-conservada')
   URL.revokeObjectURL = vi.fn()
   api.defaults.adapter = vi.fn(async (config) => {
@@ -32,9 +37,11 @@ beforeEach(() => {
       { id: 11, nombre: 'Inactivo', activo: false },
     ]
     else if (config.url === 'categorias') data = [{ id: 7, nombre: 'General' }, { id: 8, nombre: 'Desayuno' }]
+    else if (config.url === 'solicitudes_ingredientes') data = config.params.offset ? [] : structuredClone(historial)
     else if (config.url === 'rpc/solicitar_ingrediente') {
       if (falloSolicitud) throw falloSolicitud
       if (pendienteSolicitud) await pendienteSolicitud
+      historial.push({ id: 15, nombre_solicitado: 'Almendras', estado: 'pendiente' })
       data = { solicitud_id: 15, estado: 'pendiente' }
     } else if (config.url === 'rpc/crear_receta' || config.url === 'rpc/editar_propuesta_receta') data = { version_id: 83 }
     else throw new Error(`Petición inesperada: ${config.url}`)
@@ -140,6 +147,31 @@ for (const edicion of [false, true]) {
     if (!edicion) await agregarIngrediente(wrapper)
     await wrapper.get('#cantidad-ingrediente').setValue(77)
     await wrapper.get('#nuevo-paso').setValue('Borrador de paso')
+    // Mantener también la validación y la identidad de los campos al desplegar.
+    await boton(wrapper, 'Agregar ingrediente').trigger('click')
+    const errorIngrediente = wrapper.getComponent({ name: 'IngredientesEditor' }).get('[role="alert"]').text()
+    const titulo = wrapper.get('#titulo-receta').element
+    const toggle = wrapper.get('#ver-mis-solicitudes')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(toggle.get('[aria-hidden="true"]').text()).toBe('↓')
+    expect(wrapper.get('#historial-solicitudes').isVisible()).toBe(false)
+    expect(peticiones.some((config) => config.url === 'solicitudes_ingredientes')).toBe(false)
+    await toggle.trigger('click')
+    await flushPromises()
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    expect(toggle.get('[aria-hidden="true"]').text()).toBe('↑')
+    const panel = wrapper.get('#historial-solicitudes')
+    expect(panel.isVisible()).toBe(true)
+    for (const estado of ['Pendiente', 'Aprobada', 'Rechazada', 'Asociada']) expect(panel.text()).toContain(estado)
+    expect(panel.text()).toContain('Ingrediente creado: Harina')
+    expect(panel.text()).toContain('Ingrediente asociado: Harina')
+    expect(panel.text()).toContain('Fecha no disponible')
+    expect(panel.text()).toContain('2026')
+    expect(panel.find('li button').exists()).toBe(false)
+    await toggle.trigger('click')
+    expect(panel.isVisible()).toBe(false)
+    expect(wrapper.get('#titulo-receta').element).toBe(titulo)
+    expect(wrapper.getComponent({ name: 'IngredientesEditor' }).get('[role="alert"]').text()).toBe(errorIngrediente)
     const archivo = new File(['imagen'], 'pan.webp', { type: 'image/webp' })
     Object.defineProperty(wrapper.get('#archivo-receta').element, 'files', { value: [archivo], configurable: true })
     await wrapper.get('#archivo-receta').trigger('change')
@@ -163,6 +195,11 @@ for (const edicion of [false, true]) {
     await flushPromises()
     expect(document.activeElement).toBe(disparador.element)
     expect(document.querySelector('dialog')).toBeNull()
+    await toggle.trigger('click')
+    await flushPromises()
+    expect(panel.text()).toContain('Almendras')
+    expect(panel.findAll('li')).toHaveLength(5)
+    expect(wrapper.getComponent({ name: 'IngredientesEditor' }).get('[role="alert"]').text()).toBe(errorIngrediente)
     expect(wrapper.get('#titulo-receta').element.value).toBe('Mi receta sin guardar')
     expect(wrapper.get('#descripcion-receta').element.value).toBe('Descripción conservada')
     expect(wrapper.get('#porciones-receta').element.value).toBe('3')

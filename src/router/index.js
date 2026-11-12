@@ -31,7 +31,7 @@ const router = createRouter({
     },
     {
       path: '/mis-solicitudes', name: 'mis-solicitudes', meta: { requiereAuth: true },
-      component: () => import('@/views/MisSolicitudesView.vue'),
+      redirect: (to) => ({ name: 'crear-receta', query: { ...to.query, solicitudes: 'abiertas' }, hash: '#historial-solicitudes' }),
     },
     {
       path: '/mis-recetas/:recetaId/editar-publicada', name: 'editar-publicada', meta: { requiereAuth: true },

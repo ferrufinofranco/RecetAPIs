@@ -2,11 +2,13 @@
 import { computed, ref } from 'vue'
 import { unidadesReceta } from '@/utils/crearReceta'
 import SolicitarIngredienteDialogo from '@/components/ingredientes/SolicitarIngredienteDialogo.vue'
+import SolicitudesContextuales from '@/components/ingredientes/SolicitudesContextuales.vue'
 
 const props = defineProps({
   modelValue: { type: Array, required: true },
   disponibles: { type: Array, required: true },
   editarCantidades: { type: Boolean, default: false },
+  historialPersonal: { type: Boolean, default: true },
 })
 const emit = defineEmits(['update:modelValue'])
 const ingredienteId = ref('')
@@ -67,7 +69,8 @@ function modificar(id, campo, valor) {
       </div>
       <button type="button" class="agregar-ingrediente" @click="agregar">Agregar ingrediente</button>
     </div>
-    <SolicitarIngredienteDialogo />
+    <SolicitudesContextuales v-if="historialPersonal" />
+    <SolicitarIngredienteDialogo v-else />
     <p v-if="error" class="mensaje-error" role="alert">{{ error }}</p>
     <ul class="lista-editor">
       <li v-for="item in modelValue" :key="item.ingrediente_id">

@@ -7,6 +7,7 @@ import { crearAuthGuard } from '@/router/authGuard'
 import { useAuthStore } from '@/stores/auth'
 import SolicitudesIngredientes from '@/components/ingredientes/SolicitudesIngredientes.vue'
 import SolicitarIngredienteDialogo from '@/components/ingredientes/SolicitarIngredienteDialogo.vue'
+import App from '@/App.vue'
 import { api } from '@/services/api'
 import { getSupabaseMock, usuarioPrueba } from './vitest.setup'
 
@@ -22,6 +23,7 @@ beforeEach(() => {
     if (config.url === 'profiles') data = [{ ...usuarioPrueba, rol }]
     else if (config.url === 'solicitudes_ingredientes') data = config.params.offset ? [] : structuredClone(filas)
     else if (config.url === 'ingredientes') data = [{ id: 8, nombre: 'Harina', activo: true }, { id: 9, nombre: 'Inactivo', activo: false }]
+    else if (config.url === 'categorias') data = [{ id: 7, nombre: 'General' }]
     else if (config.url === 'rpc/solicitar_ingrediente') data = { solicitud_id: 11, estado: 'pendiente' }
     else if (config.url === 'rpc/resolver_solicitud_ingrediente') { filas = []; data = { solicitud_id: 10, estado: 'aprobada' } }
     else throw new Error('Petición inesperada')
@@ -62,6 +64,27 @@ it('06: visitante no puede navegar a Mis solicitudes', async () => {
   expect(router.currentRoute.value.name).toBe('login')
   expect(post()).toHaveLength(0)
 })
+
+for (const admin of [false, true]) {
+  it(`retira el enlace personal del menú de ${admin ? 'administrador' : 'usuario'} y redirige enlaces anteriores al panel`, async () => {
+    rol = admin ? 'admin' : 'usuario'
+    const pinia = createPinia()
+    const router = createRouter({ history: createMemoryHistory(), routes: appRouter.options.routes })
+    router.beforeEach(crearAuthGuard(useAuthStore(pinia)))
+    await router.push('/mis-solicitudes')
+    const wrapper = mount(App, { global: { plugins: [pinia, router] } })
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('crear-receta')
+    expect(router.currentRoute.value.query.solicitudes).toBe('abiertas')
+    expect(wrapper.get('#ver-mis-solicitudes').attributes('aria-expanded')).toBe('true')
+    expect(wrapper.get('#historial-solicitudes').isVisible()).toBe(true)
+    expect(wrapper.get('#historial-solicitudes').text()).toContain('Almendras')
+    expect(wrapper.get('nav').text()).not.toContain('Mis solicitudes')
+    expect(wrapper.get('nav').text().includes('Administración')).toBe(admin)
+    expect(post()).toHaveLength(0)
+    wrapper.unmount()
+  })
+}
 
 it('07: consulta sus solicitudes y muestra los cuatro estados sin ofrecer modificación', async () => {
   filas = ['pendiente', 'aprobada', 'rechazada', 'asociada'].map((estado, id) => ({ ...filas[0], id, estado }))

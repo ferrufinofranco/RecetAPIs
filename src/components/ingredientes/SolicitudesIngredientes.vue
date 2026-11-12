@@ -5,7 +5,11 @@ import { useAuthStore } from '@/stores/auth'
 import { obtenerIngredientes } from '@/services/ingredientes'
 import { obtenerSolicitudes, resolverSolicitud, errorSolicitud } from '@/services/solicitudes'
 
-const props = defineProps({ administrativa: { type: Boolean, default: false } })
+const props = defineProps({
+  administrativa: { type: Boolean, default: false },
+  compacta: { type: Boolean, default: false },
+  actualizacion: { type: Number, default: 0 },
+})
 const emit = defineEmits(['resuelta'])
 const auth = useAuthStore()
 const filas = ref([])
@@ -22,7 +26,7 @@ const estados = { pendiente: 'Pendiente', aprobada: 'Aprobada', rechazada: 'Rech
 
 useListadoAdministracion(() => { if (props.administrativa) intento.value++ }, () => cargando.value || procesando.value, false)
 
-watch([() => auth.user?.id, intento], async ([id], _, onCleanup) => {
+watch([() => auth.user?.id, intento, () => props.actualizacion], async ([id], _, onCleanup) => {
   const controller = new AbortController()
   onCleanup(() => controller.abort())
   filas.value = []
@@ -32,11 +36,12 @@ watch([() => auth.user?.id, intento], async ([id], _, onCleanup) => {
     if (!id || (props.administrativa && !auth.esAdmin)) return
     const [datos, opciones] = await Promise.all([
       obtenerSolicitudes({ usuarioId: id, pendientes: props.administrativa, signal: controller.signal }),
-      props.administrativa ? obtenerIngredientes() : Promise.resolve([]),
+      props.administrativa || props.compacta ? obtenerIngredientes() : Promise.resolve([]),
     ])
     if (!controller.signal.aborted && auth.user?.id === id) {
       filas.value = datos.filter((item) => !props.administrativa || (item.estado === 'pendiente' && !resueltas.has(String(item.id))))
       ingredientes.value = opciones.filter((item) => item.activo)
+      if (!props.administrativa) ingredientes.value = opciones
     }
   } catch {
     if (!controller.signal.aborted) errorCarga.value = 'No pudimos cargar las solicitudes. Reintentá la lectura.'
@@ -72,14 +77,19 @@ function fecha(item) {
   if (!item.creada_en) return 'Fecha no disponible'
   return new Date(item.creada_en).toLocaleString('es-AR')
 }
+
+function ingredienteResuelto(item) {
+  return ingredientes.value.find((opcion) => String(opcion.id) === String(item.ingrediente_id))?.nombre
+    || `Ingrediente #${item.ingrediente_id}`
+}
 </script>
 
 <template>
-  <section class="solicitudes">
+  <section class="solicitudes" :class="{ 'solicitudes--compacta': compacta }" :aria-label="compacta ? 'Mis solicitudes de ingredientes' : undefined">
     <h2 v-if="administrativa">Solicitudes de ingredientes</h2>
-    <h1 v-else>Mis solicitudes</h1>
+    <h1 v-else-if="!compacta">Mis solicitudes</h1>
     <button type="button" class="boton-secundario" :disabled="cargando || procesando" @click="intento++">Actualizar solicitudes</button>
-    <p v-if="!administrativa">Consultá el historial y los estados de tus solicitudes. Para solicitar un ingrediente nuevo, usá el editor de ingredientes al crear o editar una receta.</p>
+    <p v-if="!administrativa && !compacta">Consultá el historial y los estados de tus solicitudes. Para solicitar un ingrediente nuevo, usá el editor de ingredientes al crear o editar una receta.</p>
     <p v-if="exito" class="mensaje-info" role="status">{{ exito }}</p>
     <p v-if="error" class="mensaje-error" role="alert">{{ error }}</p>
     <p v-if="cargando" role="status">Cargando solicitudes…</p>
@@ -91,6 +101,9 @@ function fecha(item) {
       <li v-for="item in filas" :key="item.id">
         <h3>{{ item.nombre_solicitado }}</h3>
         <p>{{ estados[item.estado] || item.estado }} · {{ fecha(item) }}</p>
+        <p v-if="compacta && !administrativa && item.ingrediente_id != null && ['aprobada', 'asociada'].includes(item.estado)">
+          {{ item.estado === 'aprobada' ? 'Ingrediente creado' : 'Ingrediente asociado' }}: {{ ingredienteResuelto(item) }}
+        </p>
         <p v-if="administrativa">Solicitante: {{ item.solicitante_id }}</p>
         <fieldset v-if="administrativa && auth.esAdmin && item.estado === 'pendiente'" :disabled="procesando">
           <legend class="sr-solicitud">Resolver {{ item.nombre_solicitado }}</legend>
@@ -116,4 +129,10 @@ li h3 { margin-top: 0; }
 fieldset { border: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; min-width: 0; }
 fieldset select { max-width: 300px; }
 .sr-solicitud { font-weight: 600; margin-bottom: .5rem; }
+.solicitudes.solicitudes--compacta { margin: .5rem 0 0; padding: .5rem; border: 1px solid #e1e6dc; border-radius: 10px; min-width: 0; }
+.solicitudes--compacta .solicitudes-lista { max-height: 20rem; overflow-y: auto; margin-bottom: 0; }
+.solicitudes--compacta li { padding: .65rem; margin-block: .5rem; }
+.solicitudes--compacta li h3 { font-size: 1rem; margin-bottom: .25rem; }
+.solicitudes--compacta button { max-width: 100%; white-space: normal; }
+.solicitudes--compacta :focus-visible { outline: 3px solid #b56825; outline-offset: 2px; }
 </style>
