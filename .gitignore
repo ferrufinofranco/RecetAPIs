@@ -26,6 +26,9 @@ node_modules/
 /coverage/
 /artifacts/rls/
 
+# Documentación local
+/docs/
+
 # Logs
 logs/
 *.log

@@ -121,19 +121,44 @@ it('07: consulta sus solicitudes y muestra los cuatro estados sin ofrecer modifi
   expect(wrapper.find('input').exists()).toBe(false)
 })
 
-for (const [caso, accion, etiqueta] of [['08', 'aprobar', 'Aprobar'], ['09', 'rechazar', 'Rechazar'], ['10', 'asociar', 'Asociar']]) {
+for (const [caso, accion, etiqueta] of [
+  ['08', 'aprobar', 'Confirmar aprobación'],
+  ['09', 'rechazar', 'Confirmar rechazo'],
+  ['10', 'asociar', 'Confirmar asociación'],
+]) {
   it(`${caso}: administrador puede ${accion} mediante RPC y retira la solicitud`, async () => {
     rol = 'admin'
     const wrapper = await montar(true)
     await flushPromises()
+    const tarjeta = wrapper.get('li')
+    expect(tarjeta.get('h3').text()).toBe('Almendras')
+    expect(tarjeta.get('.solicitud-estado').text()).toBe('Pendiente')
+    expect(tarjeta.get('time').text()).toMatch(/\d{1,2}:\d{2}(?!:)/)
+    expect(tarjeta.text()).not.toContain(usuarioPrueba.id)
+    expect(tarjeta.find('button').exists()).toBe(false)
+    expect(tarjeta.findAll('select')).toHaveLength(1)
+    await tarjeta.get('#accion-solicitud-10').setValue(accion)
+    expect(tarjeta.findAll('button').map((boton) => boton.text())).toEqual([etiqueta])
+    expect(tarjeta.find('#asociar-10').exists()).toBe(accion === 'asociar')
     if (accion === 'asociar') {
       expect(wrapper.find('option[value="9"]').exists()).toBe(false)
-      await wrapper.get('select').setValue(8)
+      await tarjeta.get('button').trigger('click')
+      expect(wrapper.get('[role="alert"]').text()).toBe('Seleccioná un ingrediente activo para asociar.')
+      expect(post()).toHaveLength(0)
+      await tarjeta.get('#asociar-10').setValue(8)
+    } else if (accion === 'aprobar') {
+      expect(tarjeta.text()).toContain('Se creará un ingrediente nuevo')
+    } else {
+      expect(tarjeta.text()).toContain('La solicitud quedará rechazada')
+      expect(tarjeta.find('textarea').exists()).toBe(false)
     }
-    await wrapper.findAll('button').find((item) => item.text() === etiqueta).trigger('click')
+    await tarjeta.get('button').trigger('click')
     await flushPromises()
     expect(JSON.parse(post()[0].data)).toEqual({ p_solicitud_id: 10, p_accion: accion, p_ingrediente_id: accion === 'asociar' ? 8 : null })
     expect(post()[0].url).toBe('rpc/resolver_solicitud_ingrediente')
+    expect(peticiones.slice(peticiones.indexOf(post()[0]) + 1).some(
+      (config) => config.url === 'solicitudes_ingredientes' && config.params.estado === 'eq.pendiente',
+    )).toBe(true)
     expect(wrapper.text()).toContain('Solicitud resuelta correctamente')
     expect(wrapper.find('li').exists()).toBe(false)
   })
@@ -153,10 +178,38 @@ it('11: una solicitud resuelta no ofrece acciones nuevamente aunque una lectura 
     }
     return adapter(config)
   })
-  await wrapper.findAll('button').find((item) => item.text() === 'Rechazar').trigger('click')
+  await wrapper.get('#accion-solicitud-10').setValue('rechazar')
+  await wrapper.get('li button').trigger('click')
   await flushPromises()
   expect(wrapper.find('li button').exists()).toBe(false)
   expect(post()).toHaveLength(1)
+})
+
+it('bloquea otra confirmación mientras se procesa y conserva la acción si falla la resolución', async () => {
+  rol = 'admin'
+  const wrapper = await montar(true)
+  await flushPromises()
+  const adapter = api.defaults.adapter
+  let fallarResolucion
+  api.defaults.adapter = vi.fn((config) => {
+    if (config.url !== 'rpc/resolver_solicitud_ingrediente') return adapter(config)
+    peticiones.push(config)
+    return new Promise((_, reject) => { fallarResolucion = reject })
+  })
+  await wrapper.get('#accion-solicitud-10').setValue('aprobar')
+  const confirmar = wrapper.get('li button')
+  await confirmar.trigger('click')
+  await flushPromises()
+  expect(wrapper.get('fieldset').element.disabled).toBe(true)
+  expect(confirmar.element.matches(':disabled')).toBe(true)
+  expect(wrapper.get('header button').element.disabled).toBe(true)
+  await confirmar.trigger('click')
+  expect(post()).toHaveLength(1)
+  fallarResolucion({ response: { status: 409, data: { code: '23505' } } })
+  await flushPromises()
+  expect(wrapper.get('[role="alert"]').text()).toContain('Ya existe ese ingrediente')
+  expect(wrapper.get('#accion-solicitud-10').element.value).toBe('aprobar')
+  expect(confirmar.element.matches(':disabled')).toBe(false)
 })
 
 it('12: usuario común no dispone de acciones administrativas ni en un montaje directo', async () => {
