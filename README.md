@@ -163,7 +163,30 @@ En Ubuntu con Node.js 24.19.0 y caché de npm basada en `package-lock.json`, eje
 
 En **GitHub → Actions → CI**, abrí la ejecución del commit y el job **Tests, build y PWA**. Si falla, abrí el primer paso en rojo y leé su log para identificar si el problema está en la preparación, la instalación, los tests, el build o la PWA. Las verificaciones siguientes se omiten cuando falla un paso anterior.
 
-El despliegue automático queda pendiente.
+## Despliegue automático en Netlify
+
+El job **Desplegar en Netlify** depende de **Tests, build y PWA** y solo se habilita para un push a `main` protegida cuando ese job termina con éxito. Compila el mismo commit con las variables públicas de producción, vuelve a verificar la PWA y publica `dist/` con Netlify CLI y `--no-build`. Las ejecuciones por PR o manuales solo verifican el proyecto. Los despliegues se encolan de a uno y se omite un commit si `main` ya avanzó antes de publicar. `netlify.toml` configura el fallback a `index.html` para las rutas de Vue Router, conserva la prioridad de los archivos existentes y configura la revalidación de caché.
+
+### Activar el despliegue
+
+1. Usá un proyecto Netlify existente o creá uno vacío y sin repositorio vinculado con `npx --yes netlify-cli@27.17.0 sites:create --disable-linking`. Si el proyecto ya está vinculado a GitHub, abrí **Project configuration → Developer settings → Continuous deployment → Build settings → Configure** y seleccioná **Stopped builds** antes de publicar estos cambios. Los despliegues de archivos por CLI siguen habilitados. [Detener builds en Netlify](https://docs.netlify.com/build/configure-builds/stop-or-activate-builds/)
+2. En Netlify, copiá **Project ID** desde **Project configuration → General → Project details → Project information**. Generá un token de acceso personal en **User settings → Applications → Personal access tokens**, con una cuenta que tenga acceso al proyecto. [Autenticación de Netlify CLI](https://docs.netlify.com/api-and-cli-guides/cli-guides/get-started-with-cli/#authentication)
+3. En **GitHub → Settings → Rules → Rulesets**, creá o actualizá un ruleset activo para `main`. Exigí un PR, al menos una aprobación, descartá las aprobaciones obsoletas al subir commits y exigí el check **Tests, build y PWA**. Dejá vacía la lista de bypass para impedir pushes directos. [Reglas de GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets)
+4. En **GitHub → Settings → Environments**, creá el entorno `production`. En **Deployment branches and tags**, elegí **Selected branches and tags** y agregá solo una regla de tipo **Branch** para `main`. Cargá los siguientes valores en el entorno. [Entornos de GitHub Actions](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
+
+   | Nombre | Tipo | Valor |
+   | --- | --- | --- |
+   | `NETLIFY_AUTH_TOKEN` | Secret | Token de acceso personal de Netlify. |
+   | `NETLIFY_SITE_ID` | Variable | Project ID de Netlify. |
+   | `VITE_SUPABASE_URL` | Variable | URL HTTPS del proyecto Supabase. |
+   | `VITE_SUPABASE_PUBLISHABLE_KEY` | Variable | Clave pública `sb_publishable_…` del mismo proyecto. |
+
+   Vite incorpora las variables `VITE_*` al código que recibe el navegador. Mantené las claves secretas y `service_role` fuera de esa configuración.
+
+5. Cuando tengas el dominio HTTPS definitivo, actualizá **Supabase → Authentication → URL Configuration**. Usá la raíz del dominio como **Site URL** y agregá la URL exacta del mismo dominio con `/login` a **Redirect URLs**. Si personalizaste el correo de confirmación, comprobá que respete el destino que envía la app. [Redirect URLs de Supabase](https://supabase.com/docs/guides/auth/redirect-urls)
+6. Cuando quieras habilitar el primer despliegue, incorporá estos cambios a `main` por PR aprobado. Verificá en **GitHub → Actions → CI** que el PR solo ejecute **Tests, build y PWA** y que ambos jobs del push posterior a `main` pasen. En **Netlify → Deploys**, comprobá que el despliegue esté publicado y que el mensaje incluya ese SHA.
+
+En la URL pública, abrí la portada, recargá directamente `/login` y una ruta de receta, y comprobá que el manifest y `sw.js` sirvan sus archivos con revalidación de caché. Completá la verificación en navegador con el registro del service worker, la instalación y el flujo de confirmación de correo con una cuenta de prueba.
 
 ## Docker
 

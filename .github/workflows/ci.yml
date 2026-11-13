@@ -38,3 +38,80 @@ jobs:
 
       - name: Verificar la PWA compilada
         run: node tools/verificar-pwa.mjs
+
+  deploy:
+    name: Desplegar en Netlify
+    needs: verify
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      github.ref_protected &&
+      needs.verify.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    concurrency:
+      group: netlify-production
+      queue: max
+
+    steps:
+      - name: Obtener el commit aprobado por CI
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Configurar Node.js y la caché de npm
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24.19.0'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Compilar y verificar la PWA de producción
+        shell: bash
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          case "$VITE_SUPABASE_URL" in
+            https://?*) ;;
+            *) echo 'Configurá VITE_SUPABASE_URL con la URL HTTPS del proyecto.' >&2; exit 1 ;;
+          esac
+          case "$VITE_SUPABASE_PUBLISHABLE_KEY" in
+            sb_publishable_?*) ;;
+            *) echo 'Configurá VITE_SUPABASE_PUBLISHABLE_KEY con una clave publicable.' >&2; exit 1 ;;
+          esac
+          npm run build
+          node tools/verificar-pwa.mjs
+
+      - name: Instalar Netlify CLI en el runner
+        run: npm install --prefix "$RUNNER_TEMP/netlify-cli" --no-audit --no-fund netlify-cli@27.17.0
+
+      - name: Comprobar que el commit siga en la punta de main
+        id: current
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          main_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          if [[ "$main_sha" != "$GITHUB_SHA" ]]; then
+            echo 'main avanzó. Se omite el despliegue de este commit.'
+            exit 0
+          fi
+          echo 'deploy=true' >> "$GITHUB_OUTPUT"
+
+      - name: Publicar dist en producción
+        if: steps.current.outputs.deploy == 'true'
+        shell: bash
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID }}
+        run: |
+          : "${NETLIFY_AUTH_TOKEN:?Configurá el secreto NETLIFY_AUTH_TOKEN}"
+          : "${NETLIFY_SITE_ID:?Configurá la variable NETLIFY_SITE_ID}"
+          "$RUNNER_TEMP/netlify-cli/node_modules/.bin/netlify" deploy \
+            --prod --no-build --dir=dist --site="$NETLIFY_SITE_ID" --message="GitHub ${GITHUB_SHA}"
