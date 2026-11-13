@@ -14,7 +14,7 @@ export default defineConfig({
       // El registro y la activación son explícitos: nunca recargar formularios automáticamente.
       injectRegister: false,
       registerType: 'prompt',
-      includeAssets: ['icons/*.png'],
+      includeAssets: ['favicon.ico', 'recetapis-32.png', 'apple-touch-icon.png'],
       manifest: {
         id: '/',
         name: 'RecetAPIs',
@@ -27,9 +27,9 @@ export default defineConfig({
         theme_color: '#365f40',
         background_color: '#faf9f5',
         icons: [
-          { src: 'icons/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: 'icons/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: 'icons/pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'recetapis-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'recetapis-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'recetapis-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
