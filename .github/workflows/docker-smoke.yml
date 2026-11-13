@@ -1,0 +1,97 @@
+name: Docker smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Probar el contenedor de RecetAPIs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Obtener el repositorio
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Construir la imagen local
+        run: |
+          docker build \
+            --build-arg VITE_SUPABASE_URL=https://example.invalid \
+            --build-arg VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_docker_smoke_placeholder \
+            --tag recetapis:smoke .
+
+      - name: Iniciar Nginx y verificar su configuración
+        run: |
+          docker run --detach --name recetapis-smoke \
+            --publish 127.0.0.1:8080:80 recetapis:smoke
+          docker exec recetapis-smoke nginx -t
+
+      - name: Comprobar rutas y recursos PWA por HTTP
+        shell: bash
+        run: |
+          base_url=http://127.0.0.1:8080
+          responses=$(mktemp -d)
+          trap 'rm -r -- "$responses"' EXIT
+          curl --fail --silent --show-error --retry 10 --retry-connrefused \
+            --retry-delay 1 --max-time 5 --output /dev/null "$base_url/"
+
+          check_response() {
+            local path=$1 expected=$2 status
+            status=$(curl --silent --show-error --max-time 5 \
+              --dump-header "$responses/headers" --output "$responses/body" \
+              --write-out '%{http_code}' "$base_url$path")
+            echo "GET $path → $status (esperado $expected)"
+            test "$status" = "$expected"
+          }
+
+          check_header() {
+            if ! grep -Eiq "$1" "$responses/headers"; then
+              echo "Falta el encabezado esperado: $1" >&2
+              cat "$responses/headers" >&2
+              return 1
+            fi
+          }
+
+          check_response / 200
+          check_header '^content-type:[[:space:]]*text/html([;[:space:]]|$)'
+          grep -F '<div id="app"></div>' "$responses/body"
+          cp "$responses/body" "$responses/index.html"
+
+          for path in /login /recetas/1; do
+            check_response "$path" 200
+            check_header '^content-type:[[:space:]]*text/html([;[:space:]]|$)'
+            cmp "$responses/index.html" "$responses/body"
+          done
+          check_response /assets/inexistente.js 404
+
+          check_response /manifest.webmanifest 200
+          check_header '^content-type:[[:space:]]*application/manifest\+json([;[:space:]]|$)'
+          check_header '^cache-control:[[:space:]]*no-cache[[:space:]]*$'
+          jq -e '.name == "RecetAPIs" and .start_url == "/" and .scope == "/"' "$responses/body"
+
+          check_response /icons/pwa-192.png 200
+          check_header '^content-type:[[:space:]]*image/png([;[:space:]]|$)'
+
+          check_response /sw.js 200
+          check_header '^content-type:[[:space:]]*(application|text)/javascript([;[:space:]]|$)'
+          check_header '^cache-control:[[:space:]]*no-cache[[:space:]]*$'
+          test -s "$responses/body"
+
+      - name: Mostrar logs de Nginx si hubo un fallo
+        if: ${{ failure() }}
+        run: |
+          if docker container inspect recetapis-smoke >/dev/null 2>&1; then
+            docker logs recetapis-smoke
+          fi
+
+      - name: Retirar el contenedor
+        if: ${{ always() }}
+        run: |
+          if docker container inspect recetapis-smoke >/dev/null 2>&1; then
+            docker container rm --force recetapis-smoke
+          fi

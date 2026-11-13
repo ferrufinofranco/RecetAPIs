@@ -163,7 +163,44 @@ En Ubuntu con Node.js 24.19.0 y caché de npm basada en `package-lock.json`, eje
 
 En **GitHub → Actions → CI**, abrí la ejecución del commit y el job **Tests, build y PWA**. Si falla, abrí el primer paso en rojo y leé su log para identificar si el problema está en la preparación, la instalación, los tests, el build o la PWA. Las verificaciones siguientes se omiten cuando falla un paso anterior.
 
-Quedan pendientes el empaquetado con Docker y Nginx, y el despliegue automático del artefacto aprobado.
+El despliegue automático queda pendiente.
+
+## Docker
+
+El `Dockerfile` compila el frontend con Node.js 24.19.0 y `npm ci`. La imagen final usa Nginx Alpine y sirve `dist/` desde la raíz del sitio.
+
+Desde la raíz del repositorio, cargá en la terminal la URL del proyecto y la clave publicable `sb_publishable_…` de Supabase. Este ejemplo usa PowerShell y mantiene los valores fuera del comando de Docker.
+
+```powershell
+$env:VITE_SUPABASE_URL = Read-Host 'URL del proyecto Supabase'
+$env:VITE_SUPABASE_PUBLISHABLE_KEY = Read-Host 'Clave publicable de Supabase'
+docker build --build-arg VITE_SUPABASE_URL --build-arg VITE_SUPABASE_PUBLISHABLE_KEY -t recetapis:local .
+docker run --rm -d --name recetapis -p 127.0.0.1:8080:80 recetapis:local
+```
+
+Vite incorpora esos dos valores públicos en el JavaScript durante el build. Si cambia la configuración de Supabase, reconstruí la imagen. Usá exclusivamente la clave publicable y mantené las claves secretas y `service_role` fuera del build. Los archivos `.env*` se excluyen del contexto de Docker.
+
+Abrí `http://localhost:8080/` y recargá directamente `http://localhost:8080/login` en una ventana sin sesión. En DevTools → **Application**, comprobá que el manifest, los íconos y el service worker estén disponibles. Para probar la confirmación de registro por correo, el redirect `http://localhost:8080/login` debe estar permitido en el proyecto de Supabase. Fuera de localhost, la PWA requiere HTTPS.
+
+```powershell
+curl.exe -I http://localhost:8080/
+curl.exe -I http://localhost:8080/login
+curl.exe -I http://localhost:8080/manifest.webmanifest
+curl.exe -I http://localhost:8080/sw.js
+curl.exe -I http://localhost:8080/icons/pwa-192.png
+curl.exe -I http://localhost:8080/assets/inexistente.js
+docker stop recetapis
+```
+
+Las primeras cinco consultas deben devolver `200` y la última, `404`. El manifest debe tener tipo `application/manifest+json`. El HTML, el manifest y los scripts del service worker deben enviarse con `Cache-Control: no-cache` para que el navegador pueda revalidarlos. `docker stop` detiene el contenedor y `--rm` hace que Docker lo retire al salir.
+
+### Validación automática del contenedor
+
+Una vez que el [workflow Docker smoke](.github/workflows/docker-smoke.yml) esté en la rama predeterminada, abrí **GitHub → Actions → Docker smoke → Run workflow**, seleccioná la rama y ejecutalo. Usa una URL reservada bajo `.invalid` y una clave publicable ficticia. La imagen y el contenedor se usan dentro del runner.
+
+La prueba construye la imagen, ejecuta `nginx -t` y comprueba por HTTP la portada, el fallback de `/login` y `/recetas/1`, el `404` de un asset faltante, el manifest, un ícono y el tipo y la caché de `sw.js`. Si un paso falla, revisá su log y el paso de logs de Nginx. El contenedor se retira al finalizar.
+
+En un navegador real queda comprobar que Vue carga y navega, que el service worker se registra y controla la página, y que la PWA se puede instalar, abrir offline y actualizar entre dos builds sin perder un formulario. Seguí el [protocolo de PWA](docs/PWA.md) con una configuración pública válida para las comprobaciones que requieren datos.
 
 ## Recommended IDE Setup
 

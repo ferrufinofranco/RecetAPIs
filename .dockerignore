@@ -1,0 +1,26 @@
+# Incluir solamente las entradas necesarias para construir y servir el frontend.
+**
+!package.json
+!package-lock.json
+!index.html
+!env.d.ts
+!tsconfig*.json
+!vite.config.ts
+!public/
+!public/**
+!src/
+!src/**
+!nginx/
+!nginx/default.conf
+
+# Excluir configuraciones y credenciales locales también dentro de src y public.
+**/.git
+**/node_modules
+**/.env*
+**/.npmrc
+**/.aws
+**/*.local
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
