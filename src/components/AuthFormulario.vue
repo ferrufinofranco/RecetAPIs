@@ -67,7 +67,7 @@ async function enviar() {
           :autocomplete="registro ? 'new-password' : 'current-password'"
           :minlength="registro ? 6 : undefined" required>
       </div>
-      <p v-if="registro" class="dato">Usá al menos 6 caracteres. Supabase puede exigir requisitos adicionales.</p>
+      <p v-if="registro" class="dato">Usá al menos 6 caracteres.</p>
       <button type="submit">{{ enviando ? 'Procesando…' : registro ? 'Crear cuenta' : 'Iniciar sesión' }}</button>
     </fieldset>
     <p v-if="error" role="alert" class="mensaje-error">{{ error }}</p>

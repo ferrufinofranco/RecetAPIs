@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, onBeforeUnmount, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onDeactivated, ref } from 'vue'
 import { useListadoAdministracion } from '@/composables/useListadoAdministracion'
 import { useAuthStore } from '@/stores/auth'
 import { aprobarReceta, rechazarReceta, obtenerPropuesta, obtenerPropuestasPendientes, mensajeErrorModeracion } from '@/services/moderacion'
@@ -21,6 +21,19 @@ const panelRevision = ref(null)
 let disparadorRevision
 let listadoController
 let detalleController
+let temporizadorExito
+let cicloModeracion = 0
+
+function limpiarExito() {
+  clearTimeout(temporizadorExito)
+  temporizadorExito = undefined
+  exito.value = ''
+}
+
+function descartarConfirmaciones() {
+  cicloModeracion++
+  limpiarExito()
+}
 
 function fecha(valor) {
   const date = new Date(valor)
@@ -66,7 +79,7 @@ async function revisar(id, disparador) {
   seleccionadaId.value = id
   revisando.value = true
   errorOperacion.value = ''
-  exito.value = ''
+  limpiarExito()
   try {
     const datos = await obtenerPropuesta(id, controller.signal)
     if (controller.signal.aborted) return
@@ -91,9 +104,10 @@ async function decidir(accion) {
     ? `¿Aprobar «${propuesta.value.titulo}», versión ${propuesta.value.numero}? Quedará publicada en el catálogo.`
     : `¿Rechazar «${propuesta.value.titulo}», versión ${propuesta.value.numero}?`
   if (!window.confirm(confirmacion)) return
+  const cicloDecision = cicloModeracion
   procesando.value = true
   errorOperacion.value = ''
-  exito.value = ''
+  limpiarExito()
   try {
     const perfil = await auth.actualizarPerfil()
     if (!auth.autenticado || perfil?.id !== auth.user?.id || perfil?.rol !== 'admin') {
@@ -103,7 +117,10 @@ async function decidir(accion) {
     }
     if (accion === 'aprobar') await aprobarReceta(versionId)
     else await rechazarReceta(versionId, motivo.value)
-    exito.value = accion === 'aprobar' ? 'Receta aprobada y publicada correctamente.' : 'Propuesta rechazada correctamente.'
+    if (cicloDecision === cicloModeracion) {
+      exito.value = accion === 'aprobar' ? 'Receta aprobada y publicada correctamente.' : 'Propuesta rechazada correctamente.'
+      temporizadorExito = setTimeout(limpiarExito, 4000)
+    }
     await cargarListado()
   } catch (error) {
     errorOperacion.value = mensajeErrorModeracion(error)
@@ -115,7 +132,9 @@ async function decidir(accion) {
 }
 
 useListadoAdministracion(() => cargarListado(true), () => cargando.value || procesando.value || revisando.value)
+onDeactivated(descartarConfirmaciones)
 onBeforeUnmount(() => {
+  descartarConfirmaciones()
   listadoController?.abort()
   detalleController?.abort()
 })

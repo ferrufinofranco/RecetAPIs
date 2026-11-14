@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
@@ -7,12 +7,15 @@ import { useAuthStore } from '@/stores/auth'
 import { api } from '@/services/api'
 import { usuarioPrueba } from './vitest.setup'
 
-let peticiones, eliminada, resuelta, fallo, ingredientes
+let peticiones, eliminada, resuelta, fallo, ingredientes, pendientes
 const propuesta = { id: 112, receta_id: 12, titulo: 'Sopa', numero: 1, creada_en: '2026-11-12',
   estado: 'pendiente', receta: { id: 12 }, receta_categorias: [], receta_ingredientes: [], receta_pasos: [] }
+afterEach(() => vi.useRealTimers())
+
 beforeEach(() => {
   peticiones = []
   eliminada = resuelta = fallo = false
+  pendientes = [propuesta]
   ingredientes = [{ id: 8, nombre: 'Harina', activo: true }]
   vi.spyOn(window, 'confirm').mockReturnValue(true)
   api.defaults.adapter = vi.fn(async (config) => {
@@ -24,7 +27,16 @@ beforeEach(() => {
       data = structuredClone(ingredientes)
     }
     else if (config.url === 'categorias') data = [{ id: 7, nombre: 'Postres' }]
-    else if (config.url === 'receta_versiones') data = eliminada || config.params.offset ? [] : [structuredClone(propuesta)]
+    else if (config.url === 'receta_versiones') {
+      data = eliminada || config.params.offset ? [] : structuredClone(
+        pendientes.filter((item) => !config.params.id || config.params.id === `eq.${item.id}`),
+      )
+    }
+    else if (['rpc/aprobar_receta', 'rpc/rechazar_receta'].includes(config.url)) {
+      if (fallo) throw new Error('Sin conexión')
+      const { p_version_id } = JSON.parse(config.data)
+      pendientes = pendientes.filter((item) => item.id !== p_version_id)
+    }
     else if (config.url === 'recetas') data = eliminada || config.params.offset ? [] : [{ id: 12, autor_id: 'otro', receta_versiones: [structuredClone(propuesta)] }]
     else if (config.url === 'solicitudes_ingredientes') data = resuelta || config.params.offset ? [] : [{ id: 10, nombre_solicitado: 'Almendras', estado: 'pendiente' }]
     else if (config.url === 'rpc/eliminar_receta') eliminada = true
@@ -65,6 +77,96 @@ async function tab(wrapper, id) {
   await esperarModulo(wrapper)
 }
 const lecturas = (url) => peticiones.filter((item) => item.url === url).length
+
+async function moderar(wrapper, titulo = 'Sopa', accion = 'Aprobar receta') {
+  await wrapper.get(`[aria-label="Revisar ${titulo}, versión 1"]`).trigger('click')
+  await flushPromises()
+  await wrapper.findAll('.acciones-moderacion button').find((boton) => boton.text() === accion).trigger('click')
+  await flushPromises()
+}
+
+it('muestra el éxito al resolver y lo retira a los cuatro segundos, incluso con el listado vacío', async () => {
+  const wrapper = await abrir()
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  await moderar(wrapper)
+  expect(wrapper.get('.mensaje-info[role="status"]').text()).toBe('Receta aprobada y publicada correctamente.')
+  expect(wrapper.text()).toContain('No hay recetas pendientes.')
+  await vi.advanceTimersByTimeAsync(3999)
+  expect(wrapper.find('.mensaje-info').exists()).toBe(true)
+  await vi.advanceTimersByTimeAsync(1)
+  expect(wrapper.find('.mensaje-info').exists()).toBe(false)
+})
+
+it('reinicia los cuatro segundos desde la segunda confirmación', async () => {
+  pendientes.push({ ...propuesta, id: 113, titulo: 'Tarta' })
+  const wrapper = await abrir()
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  await moderar(wrapper)
+  await vi.advanceTimersByTimeAsync(3000)
+  await moderar(wrapper, 'Tarta', 'Rechazar receta')
+  expect(wrapper.get('.mensaje-info[role="status"]').text()).toBe('Propuesta rechazada correctamente.')
+  expect(vi.getTimerCount()).toBe(1)
+  await vi.advanceTimersByTimeAsync(3999)
+  expect(wrapper.get('.mensaje-info').text()).toBe('Propuesta rechazada correctamente.')
+  await vi.advanceTimersByTimeAsync(1)
+  expect(wrapper.find('.mensaje-info').exists()).toBe(false)
+})
+
+it('mantiene visible el error de resolución tras cuatro segundos', async () => {
+  const wrapper = await abrir()
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  fallo = true
+  await moderar(wrapper)
+  const alerta = wrapper.get('.moderacion [role="alert"]')
+  expect(alerta.text()).toContain('No se pudo confirmar la operación.')
+  await vi.advanceTimersByTimeAsync(5000)
+  expect(alerta.isVisible()).toBe(true)
+  expect(wrapper.find('.mensaje-info').exists()).toBe(false)
+  expect(vi.getTimerCount()).toBe(0)
+})
+
+it('limpia el éxito y el temporizador al salir de la pestaña con KeepAlive', async () => {
+  const wrapper = await abrir()
+  const moderacion = wrapper.get('.moderacion').element
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  await moderar(wrapper)
+  expect(vi.getTimerCount()).toBe(1)
+  await wrapper.get('#admin-recetas-tab-gestion').trigger('click')
+  await flushPromises()
+  expect(vi.getTimerCount()).toBe(0)
+  await wrapper.get('#admin-recetas-tab-pendientes').trigger('click')
+  await flushPromises()
+  expect(wrapper.get('.moderacion').element).toBe(moderacion)
+  expect(wrapper.find('.moderacion .mensaje-info').exists()).toBe(false)
+})
+
+it('descarta una confirmación tardía de una decisión iniciada antes de salir de la pestaña', async () => {
+  const wrapper = await abrir()
+  const adapter = api.defaults.adapter
+  let terminar
+  api.defaults.adapter = async (config) => {
+    if (config.url === 'rpc/aprobar_receta') await new Promise((resolve) => { terminar = resolve })
+    return adapter(config)
+  }
+  await moderar(wrapper)
+  expect(wrapper.get('.revision').text()).toContain('Procesando decisión')
+  await tab(wrapper, 'admin-recetas-tab-gestion')
+  await wrapper.get('#admin-recetas-tab-pendientes').trigger('click')
+  await flushPromises()
+  terminar()
+  await flushPromises()
+  expect(wrapper.text()).toContain('No hay recetas pendientes.')
+  expect(wrapper.find('.moderacion .mensaje-info').exists()).toBe(false)
+})
+
+it('cancela el temporizador de éxito al desmontar Administración', async () => {
+  const wrapper = await abrir()
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  await moderar(wrapper)
+  expect(vi.getTimerCount()).toBe(1)
+  wrapper.unmount()
+  expect(vi.getTimerCount()).toBe(0)
+})
 
 it('muestra las cuatro pestañas y ambas subpestañas, sin montar módulos no visitados', async () => {
   const wrapper = await abrir()
