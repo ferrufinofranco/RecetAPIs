@@ -1,10 +1,12 @@
 <script setup>
-import { computed, onBeforeUnmount, provide, ref, unref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, provide, ref, unref, watch } from 'vue'
 import { avisoCambiosSinGuardar, cambiosSinGuardarKey } from '@/composables/useCambiosSinGuardar'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AvisosPwa from '@/components/AvisosPwa.vue'
 import BotonTema from '@/components/BotonTema.vue'
+import AsistentePanel from '@/components/AsistentePanel.vue'
+import IconoAsistente from '@/components/IconoAsistente.vue'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -32,7 +34,29 @@ function enlaceActivo(nombre) {
 const error = ref('')
 const menuAbierto = ref(false)
 const botonMenu = ref(null)
-watch(() => route.fullPath, () => { menuAbierto.value = false })
+const asistenteAbierto = ref(false)
+const botonAsistente = ref(null)
+const contenido = ref(null)
+
+function abrirAsistente() {
+  asistenteAbierto.value = true
+}
+
+async function cerrarAsistente(porNavegacion = false) {
+  if (!asistenteAbierto.value) return
+  asistenteAbierto.value = false
+  await nextTick()
+  if (asistenteAbierto.value) return
+  const destino = porNavegacion ? contenido.value : botonAsistente.value
+  destino?.focus({ preventScroll: true })
+  if (document.activeElement !== destino) botonAsistente.value?.focus({ preventScroll: true })
+}
+
+watch(router.currentRoute, (destino) => {
+  menuAbierto.value = false
+  if (destino.redirectedFrom?.name === 'asistente') abrirAsistente()
+  else void cerrarAsistente(true)
+}, { immediate: true })
 
 function cerrarMenu() {
   if (!menuAbierto.value) return
@@ -88,11 +112,45 @@ async function salir() {
       </div>
     </nav>
   </header>
-  <main class="contenedor contenido">
+  <main ref="contenido" class="contenedor contenido" tabindex="-1">
     <AvisosPwa :hay-cambios-sin-guardar="hayCambiosSinGuardar" />
     <p v-if="error" class="mensaje-error" role="alert">{{ error }}</p>
     <p v-if="auth.errorPerfil && route.name !== 'acceso-denegado'" class="mensaje-error" role="alert">{{ auth.errorPerfil }}</p>
     <RouterView />
   </main>
   <footer class="sitio-footer">RecetAPIs · Recetas para compartir</footer>
+  <button ref="botonAsistente" type="button" class="asistente-flotante" aria-label="Abrir Asistente IA"
+    aria-haspopup="dialog" aria-controls="asistente-panel" :aria-expanded="asistenteAbierto" @click="abrirAsistente">
+    <IconoAsistente />
+    <span>Asistente IA</span>
+  </button>
+  <AsistentePanel :abierto="asistenteAbierto" @cerrar="cerrarAsistente()" />
 </template>
+
+<style scoped>
+.asistente-flotante {
+  position: fixed;
+  right: max(1.25rem, env(safe-area-inset-right));
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  border: 1px solid var(--borde-control);
+  border-radius: 999px;
+  padding: .7rem 1rem;
+  font-weight: 700;
+  box-shadow: 0 5px 18px var(--sombra-desplegable);
+  transition: transform .15s, box-shadow .15s;
+}
+.asistente-flotante:hover { box-shadow: 0 7px 22px var(--sombra-desplegable); transform: translateY(-2px); }
+.asistente-flotante:active { transform: none; }
+@media (max-width: 600px) {
+  .asistente-flotante { right: max(.75rem, env(safe-area-inset-right)); bottom: max(.75rem, env(safe-area-inset-bottom)); padding: .75rem; }
+  .asistente-flotante span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .asistente-flotante { transition: none; }
+  .asistente-flotante:hover { transform: none; }
+}
+</style>

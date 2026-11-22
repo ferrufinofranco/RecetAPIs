@@ -7,6 +7,7 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', name: 'catalogo', component: CatalogoView },
+    { path: '/asistente', name: 'asistente', redirect: { name: 'catalogo' } },
     {
       path: '/login', name: 'login', meta: { soloInvitados: true },
       component: () => import('@/views/LoginView.vue'),

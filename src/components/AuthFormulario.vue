@@ -1,11 +1,12 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({ registro: { type: Boolean, default: false } })
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 const nombre = ref('')
 const email = ref('')
 const password = ref('')
@@ -32,7 +33,7 @@ async function enviar() {
     } else {
       await auth.ingresar(email.value.trim(), password.value)
     }
-    await router.replace({ name: 'catalogo' })
+    await router.replace({ name: !props.registro && route.query.volver === 'asistente' ? 'asistente' : 'catalogo' })
   } catch (err) {
     if (err.code === 'email_not_confirmed') {
       error.value = 'Confirmá tu correo electrónico antes de iniciar sesión.'

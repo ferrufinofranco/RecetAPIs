@@ -1,0 +1,5 @@
+project_id = "recetapis"
+
+[functions.asistente]
+# La función valida cada JWT de usuario contra Supabase Auth.
+verify_jwt = false
