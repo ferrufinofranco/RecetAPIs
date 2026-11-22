@@ -196,16 +196,16 @@ it('alterna desde el menú sin remontar ni borrar el formulario y conserva el te
 
 it('el tema del sistema se aplica también al diálogo teletransportado sin cerrarlo ni borrar su borrador', async () => {
   const { wrapper } = await abrirFormulario()
-  await wrapper.get('[aria-haspopup="dialog"]').trigger('click')
+  await wrapper.get('.solicitudes-acciones [aria-haspopup="dialog"]').trigger('click')
   await flushPromises()
-  const dialogo = document.querySelector('dialog')
+  const dialogo = document.querySelector('.solicitud-dialogo')
   const entrada = dialogo.querySelector('input')
   entrada.value = 'Almendras'
   entrada.dispatchEvent(new Event('input', { bubbles: true }))
   cambiarSistema(true)
   await flushPromises()
   expect(document.documentElement.dataset.tema).toBe('oscuro')
-  expect(document.querySelector('dialog')).toBe(dialogo)
+  expect(document.querySelector('.solicitud-dialogo')).toBe(dialogo)
   expect(dialogo.open).toBe(true)
   expect(entrada.value).toBe('Almendras')
   dialogo.dispatchEvent(new Event('cancel', { cancelable: true }))

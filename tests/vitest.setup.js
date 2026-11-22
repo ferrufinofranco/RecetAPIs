@@ -3,6 +3,7 @@ import { enableAutoUnmount } from '@vue/test-utils'
 
 const supabaseMock = vi.hoisted(() => ({
   storage: { from: vi.fn() },
+  functions: { invoke: vi.fn() },
   auth: {
     getSession: vi.fn(),
     onAuthStateChange: vi.fn(),

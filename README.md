@@ -72,6 +72,30 @@ npm run dev
 
 Abrí [la aplicación local](http://localhost:5173/). En PowerShell podés usar `npm.cmd` si la ejecución de `npm.ps1` está restringida.
 
+## Asistente RecetAPIs
+
+Abrí **Asistente IA** desde el botón flotante. En escritorio se abre un panel lateral y en celular ocupa la pantalla. Los enlaces a `/asistente` siguen abriendo el chat desde el catálogo. La conversación vive en memoria y continúa al cerrar el panel o visitar una receta. Se borra al recargar la página, cerrar sesión o pulsar **Nueva conversación**. Envía hasta tres turnos anteriores y un mensaje nuevo de hasta 600 caracteres.
+
+La Edge Function `asistente` comprueba el JWT con Supabase Auth y consulta el catálogo bajo RLS. Busca coincidencias por título, ingredientes y categorías, con un filtro de tiempo cuando se indican minutos. Envía hasta cinco candidatas en una llamada a GroqCloud y vuelve a comprobar la publicación de las recetas recomendadas antes de devolver las tarjetas. Los consejos y motivos son generados por el modelo. Los títulos, enlaces y datos de las tarjetas provienen del catálogo. Los textos del chat se envían a GroqCloud para generar la respuesta.
+
+### Activación manual en Supabase
+
+1. En el SQL Editor del proyecto autorizado, aplicá [`16_recetario_cuota_asistente.sql`](supabase/migrations/16_recetario_cuota_asistente.sql) después de las migraciones anteriores. El contador admite 20 consultas por usuario y fecha de Buenos Aires. Una consulta reservada cuenta incluso si se interrumpe o el proveedor falla.
+2. Creá una clave de GroqCloud en una organización con el plan gratuito. En **Edge Functions → Secrets** del proyecto Supabase, guardá `GROQ_API_KEY` y `GROQ_MODEL=qwen/qwen3.8-27b`. Guardá la clave únicamente como secreto de la función. [Límites del plan gratuito](https://console.groq.com/docs/rate-limits) · [Secretos en Supabase](https://supabase.com/docs/guides/functions/secrets).
+3. Con Supabase CLI, desde la raíz del repositorio, ejecutá lo siguiente reemplazando `TU_PROJECT_REF`. El archivo [`supabase/config.toml`](supabase/config.toml) delega la verificación de la sesión a la función, que autentica el JWT antes de reservar cuota o consultar el catálogo. [Despliegue de Edge Functions](https://supabase.com/docs/guides/functions/deploy).
+
+   ```sh
+   supabase login
+   supabase functions deploy asistente --project-ref TU_PROJECT_REF --use-api
+   ```
+
+### Prueba de punta a punta
+
+1. Configurá el frontend local con la URL y clave publicable del mismo proyecto Supabase y ejecutá `npm run dev`. Abrí `/asistente` sin sesión y verificá que se muestre la invitación a iniciar sesión.
+2. Ingresá con una cuenta de prueba. Preguntá por ingredientes de alguna receta publicada que conozcas y abrí la tarjeta para verificar el detalle. Volvé al chat y preguntá «¿Qué ingredientes me faltarían?» o «Quiero algo rápido, máximo 30 minutos».
+3. Preguntá por una receta dada de baja o una versión pendiente conocida. Confirmá que no aparezca su tarjeta. Probá también una consulta general, por ejemplo «¿Puedo reemplazar la manteca por aceite?».
+4. Con una cuenta de prueba y cuota sin usar, comprobá que la consulta 21 del mismo día quede bloqueada. Espaciá los mensajes si el plan de GroqCloud devuelve antes un límite de proveedor. Para comprobar concurrencia, enviá dos consultas simultáneas desde pestañas distintas después de consumir 19 y verificá que solo una reserva se acepte.
+
 ## Pruebas y compilación
 
 ```sh
