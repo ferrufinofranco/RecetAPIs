@@ -131,7 +131,8 @@ async function salir() {
 .asistente-flotante {
   position: fixed;
   right: max(1.25rem, env(safe-area-inset-right));
-  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  /* Dejar libre la esquina inferior para la insignia del sitio. */
+  bottom: calc(clamp(5rem, 11dvh, 6rem) + env(safe-area-inset-bottom, 0px));
   z-index: 5;
   display: flex;
   align-items: center;
@@ -146,7 +147,8 @@ async function salir() {
 .asistente-flotante:hover { box-shadow: 0 7px 22px var(--sombra-desplegable); transform: translateY(-2px); }
 .asistente-flotante:active { transform: none; }
 @media (max-width: 600px) {
-  .asistente-flotante { right: max(.75rem, env(safe-area-inset-right)); bottom: max(.75rem, env(safe-area-inset-bottom)); padding: .75rem; }
+  .contenido { padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px)); }
+  .asistente-flotante { right: max(.75rem, env(safe-area-inset-right)); padding: .75rem; }
   .asistente-flotante span { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
